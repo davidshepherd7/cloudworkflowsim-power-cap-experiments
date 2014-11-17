@@ -47,6 +47,27 @@ import cws.core.simulation.StorageCacheType;
 
 
 public class MySimulation {
+
+    public String[] distributionFactory(String inputName, String distribution,
+                                        int ensembleSize, long seed) {
+        if ("uniform_unsorted".equals(distribution)) {
+            return DAGListGenerator.generateDAGListUniformUnsorted(new Random(seed), inputName, ensembleSize);
+        } else if ("uniform_sorted".equals(distribution)) {
+            return DAGListGenerator.generateDAGListUniform(new Random(seed), inputName, ensembleSize);
+        } else if ("pareto_unsorted".equals(distribution)) {
+            return DAGListGenerator.generateDAGListParetoUnsorted(new Random(seed), inputName, ensembleSize);
+        } else if ("pareto_sorted".equals(distribution)) {
+            return DAGListGenerator.generateDAGListPareto(new Random(seed), inputName, ensembleSize);
+        } else if ("constant".equals(distribution)) {
+            return DAGListGenerator.generateDAGListConstant(new Random(seed), inputName, ensembleSize);
+        } else if (distribution.startsWith("fixed")) {
+            int size = Integer.parseInt(distribution.substring(5));
+            return DAGListGenerator.generateDAGListConstant(inputName, size, ensembleSize);
+        } else {
+            throw new IllegalCWSArgumentException("Unrecognized distribution: " + distribution);
+        }
+    }
+
     /**
      * The scaling factor for jobs' runtimes.
      */
@@ -251,24 +272,9 @@ public class MySimulation {
         Log.disable(); // We do not need Cloudsim's logs. We have our own.
 
         // Determine the distribution
-        String[] names = null;
-        String inputname = inputdir.getAbsolutePath() + "/" + application;
-        if ("uniform_unsorted".equals(distribution)) {
-            names = DAGListGenerator.generateDAGListUniformUnsorted(new Random(seed), inputname, ensembleSize);
-        } else if ("uniform_sorted".equals(distribution)) {
-            names = DAGListGenerator.generateDAGListUniform(new Random(seed), inputname, ensembleSize);
-        } else if ("pareto_unsorted".equals(distribution)) {
-            names = DAGListGenerator.generateDAGListParetoUnsorted(new Random(seed), inputname, ensembleSize);
-        } else if ("pareto_sorted".equals(distribution)) {
-            names = DAGListGenerator.generateDAGListPareto(new Random(seed), inputname, ensembleSize);
-        } else if ("constant".equals(distribution)) {
-            names = DAGListGenerator.generateDAGListConstant(new Random(seed), inputname, ensembleSize);
-        } else if (distribution.startsWith("fixed")) {
-            int size = Integer.parseInt(distribution.substring(5));
-            names = DAGListGenerator.generateDAGListConstant(inputname, size, ensembleSize);
-        } else {
-            throw new IllegalCWSArgumentException("Unrecognized distribution: " + distribution);
-        }
+        String inputName = inputdir.getAbsolutePath() + "/" + application;
+        String[] distributionNames = distributionFactory(inputName, distribution,
+                                                         ensembleSize, seed);
 
         StorageSimulationParams simulationParams = new StorageSimulationParams();
 
@@ -317,10 +323,10 @@ public class MySimulation {
         double maxCost = 0.0;
         double maxTime = 0.0;
         int workflow_id = 0;
-        for (String name : names) {
+        for (String name : distributionNames) {
             DAG dag = DAGParser.parseDAG(new File(name));
             dag.setId(new Integer(workflow_id).toString());
-            System.out.println(String.format("Workflow %d, priority = %d, filename = %s", workflow_id, names.length
+            System.out.println(String.format("Workflow %d, priority = %d, filename = %s", workflow_id, distributionNames.length
                                              - workflow_id, name));
             workflow_id++;
             dags.add(dag);
@@ -401,7 +407,7 @@ public class MySimulation {
                     cloudsim.setLogsEnabled(enableLogging);
                     cloudsim.log("budget = " + budget);
                     cloudsim.log("deadline = " + deadline);
-                    logWorkflowsDescription(dags, names, cloudsim);
+                    logWorkflowsDescription(dags, distributionNames, cloudsim);
 
                     environment = EnvironmentFactory.createEnvironment(cloudsim, simulationParams, vmType,
                                                                        isStorageAware);
@@ -446,11 +452,17 @@ public class MySimulation {
         }
     }
 
-    private void logWorkflowsDescription(List<DAG> dags, String[] names, CloudSimWrapper cloudsim) {
+    private void logWorkflowsDescription(List<DAG> dags, String[] distributionNames,
+                                         CloudSimWrapper cloudsim) {
         for (int i = 0; i < dags.size(); i++) {
             DAG dag = dags.get(i);
-            String workflowDescription = String.format("Workflow %s, priority = %d, filename = %s", dag.getId(),
-                                                       dags.size() - i, names[i]);
+
+            String workflowDescription =
+                String.format("Workflow %s, priority = %d, filename = %s",
+                              dag.getId(),
+                              dags.size() - i,
+                              distributionNames[i]);
+
             cloudsim.log(workflowDescription);
         }
     }
