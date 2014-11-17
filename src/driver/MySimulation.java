@@ -267,8 +267,7 @@ public class MySimulation {
             int size = Integer.parseInt(distribution.substring(5));
             names = DAGListGenerator.generateDAGListConstant(inputname, size, ensembleSize);
         } else {
-            System.err.println("Unrecognized distribution: " + distribution);
-            System.exit(1);
+            throw new IllegalCWSArgumentException("Unrecognized distribution: " + distribution);
         }
 
         StorageSimulationParams simulationParams = new StorageSimulationParams();
