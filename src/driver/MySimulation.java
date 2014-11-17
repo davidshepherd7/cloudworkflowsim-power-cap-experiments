@@ -267,9 +267,43 @@ public class MySimulation {
         Environment environment = EnvironmentFactory.createEnvironment
             (cloudsim, simulationParams, vmType, false);
 
+        // Parse the dags
+        List<DAG> dags = new ArrayList<DAG>(); 
+        {
+            double minTime = Double.MAX_VALUE;
+            double minCost = Double.MAX_VALUE;
+            double maxCost = 0.0;
+            double maxTime = 0.0;
+            int workflow_id = 0;
+            for (String name : distributionNames) {
+                DAG dag = DAGParser.parseDAG(new File(name));
+                dag.setId(new Integer(workflow_id).toString());
+                System.out.println(String.format("Workflow %d, priority = %d, filename = %s", workflow_id, distributionNames.length
+                                                 - workflow_id, name));
+                workflow_id++;
+                dags.add(dag);
+
+                if (scalingFactor > 1.0) {
+                    for (String tid : dag.getTasks()) {
+                        Task t = dag.getTaskById(tid);
+                        t.scaleSize(scalingFactor);
+                    }
+                }
+
+                DAGStats dagStats = new DAGStats(dag, environment);
+
+                minTime = Math.min(minTime, dagStats.getCriticalPathLength());
+                minCost = Math.min(minCost, dagStats.getMinCost());
+
+                maxTime += dagStats.getCriticalPathLength();
+                maxCost += dagStats.getMinCost();
+            }
+            maxCost *= 2;
+            maxTime *= 2;
+        }
+
 
         // Make the algorithm
-        List<DAG> dags = new ArrayList<DAG>();
         Algorithm algorithm = createAlgorithm(alpha, maxScaling, algorithmName,
                                               cloudsim, dags, budget, deadline);
         algorithm.setEnvironment(environment);
