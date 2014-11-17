@@ -419,23 +419,23 @@ public class MySimulation {
                     fileOut.printf("%s,%s,%d,%d,", application, distribution, seed, ensembleSize);
                     fileOut.printf("%f,%f,%f,%s,", scalingFactor, budget, deadline, algorithm.getName());
                     fileOut.printf("%d,%.10f,%.10f,%f,", algorithmStatistics.getFinishedDags().size(),
-                            algorithmStatistics.getExponentialScore(), algorithmStatistics.getLinearScore(),
-                            planningTime);
+                                   algorithmStatistics.getExponentialScore(), algorithmStatistics.getLinearScore(),
+                                   planningTime);
                     fileOut.printf("%f,%s,%f,%f,%f,", simulationTime, algorithmStatistics.getScoreBitString(),
-                            algorithmStatistics.getActualCost(), algorithmStatistics.getActualJobFinishTime(),
-                            algorithmStatistics.getActualDagFinishTime());
+                                   algorithmStatistics.getActualCost(), algorithmStatistics.getActualJobFinishTime(),
+                                   algorithmStatistics.getActualDagFinishTime());
                     fileOut.printf("%f,%f,%f,%f,%f,%f,%f,", algorithmStatistics.getActualVMFinishTime(),
-                            VMFactory.getRuntimeVariance(), VMFactory.getFailureRate(), minBudget, maxBudget,
-                            minDeadline, maxDeadline);
+                                   VMFactory.getRuntimeVariance(), VMFactory.getFailureRate(), minBudget, maxBudget,
+                                   minDeadline, maxDeadline);
 
                     StorageManagerStatistics stats = environment.getStorageManagerStatistics();
                     fileOut.printf("%s,%d,%d,%d,%d,%d,", storageManagerType, stats.getTotalBytesToRead(),
-                            stats.getTotalBytesToWrite(), stats.getTotalBytesToRead() + stats.getTotalBytesToWrite(),
-                            stats.getActualBytesRead(), stats.getActualBytesRead() + stats.getTotalBytesToWrite());
+                                   stats.getTotalBytesToWrite(), stats.getTotalBytesToRead() + stats.getTotalBytesToWrite(),
+                                   stats.getActualBytesRead(), stats.getActualBytesRead() + stats.getTotalBytesToWrite());
 
                     fileOut.printf("%d,%d,%d,%d,%d\n", stats.getTotalFilesToRead(), stats.getTotalFilesToWrite(),
-                            stats.getTotalFilesToRead() + stats.getTotalFilesToWrite(), stats.getActualFilesRead(),
-                            stats.getActualFilesRead() + stats.getTotalFilesToWrite());
+                                   stats.getTotalFilesToRead() + stats.getTotalFilesToWrite(), stats.getActualFilesRead(),
+                                   stats.getActualFilesRead() + stats.getTotalFilesToWrite());
                 }
             }
             System.out.println();
@@ -450,7 +450,7 @@ public class MySimulation {
         for (int i = 0; i < dags.size(); i++) {
             DAG dag = dags.get(i);
             String workflowDescription = String.format("Workflow %s, priority = %d, filename = %s", dag.getId(),
-                    dags.size() - i, names[i]);
+                                                       dags.size() - i, names[i]);
             cloudsim.log(workflowDescription);
         }
     }
@@ -478,7 +478,7 @@ public class MySimulation {
      * @return The newly created algorithm instance.
      */
     protected Algorithm createAlgorithm(double alpha, double maxScaling, String algorithmName,
-            CloudSimWrapper cloudsim, List<DAG> dags, double budget, double deadline) {
+                                        CloudSimWrapper cloudsim, List<DAG> dags, double budget, double deadline) {
         AlgorithmStatistics ensembleStatistics = new AlgorithmStatistics(dags, cloudsim);
 
         if ("SPSS".equals(algorithmName)) {
@@ -500,7 +500,7 @@ public class MySimulation {
      * @return Output stream for logs for current simulation.
      */
     private OutputStream getLogOutputStream(double budget, double deadline, File outputfile)
-            throws FileNotFoundException {
+        throws FileNotFoundException {
         String name = String.format("%s.b-%.2f-d-%.2f.log", outputfile.getAbsolutePath(), budget, deadline);
         return new FileOutputStream(new File(name));
     }
