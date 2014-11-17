@@ -263,7 +263,6 @@ public class MySimulation {
         boolean isStorageAware = Boolean.valueOf(args.getOptionValue("storage-aware", DEFAULT_IS_STORAGE_AWARE));
 
         VMType vmType = vmTypeLoader.determineVMType(args);
-        logVMType(vmType);
 
         VMFactory.readCliOptions(args, seed);
 
@@ -302,45 +301,13 @@ public class MySimulation {
             throw new IllegalCWSArgumentException("Wrong storage-cache:" + storageCacheType);
         }
 
-        if (storageManagerType.equals("global")) {
-            GlobalStorageParams globalStorageParams = globalStorageParamsLoader.determineGlobalStorageParams(args);
-            logGlobalStorageParams(globalStorageParams);
-            simulationParams.setStorageParams(globalStorageParams);
-            simulationParams.setStorageType(StorageType.GLOBAL);
-        } else if (storageManagerType.equals("void")) {
-            simulationParams.setStorageType(StorageType.VOID);
-        } else {
-            throw new IllegalCWSArgumentException("Wrong storage-manager:" + storageCacheType);
-        }
+        // Use trivial storage simulation only
+        simulationParams.setStorageType(StorageType.VOID);
 
-        // Echo the simulation parameters
-        System.out.printf("application = %s\n", application);
-        System.out.printf("inputdir = %s\n", inputdir);
-        System.out.printf("outputfile = %s\n", outputfile);
-        System.out.printf("distribution = %s\n", distribution);
-        System.out.printf("ensembleSize = %d\n", ensembleSize);
-        System.out.printf("scalingFactor = %f\n", scalingFactor);
-        System.out.printf("algorithm = %s\n", algorithmName);
-        System.out.printf("seed = %d\n", seed);
-        System.out.printf("storageManagerType = %s\n", storageManagerType);
-        System.out.printf("storageCache = %s\n", storageCacheType);
-        System.out.printf("enableLogging = %b\n", enableLogging);
-        System.out.printf("nbudgets = %d\n", nbudgets);
-        System.out.printf("ndeadlines = %d\n", ndeadlines);
-        System.out.printf("alpha = %f\n", alpha);
-        System.out.printf("maxScaling = %f\n", maxScaling);
-        System.out.printf("isStorageAware = %b\n", isStorageAware);
 
         List<DAG> dags = new ArrayList<DAG>();
         Environment environment = EnvironmentFactory.createEnvironment(cloudsim, simulationParams, vmType,
                                                                        false);
-
-        // print some junk...
-        cloudsim.log("budget = " + budget);
-        cloudsim.log("deadline = " + deadline);
-        System.out.printf("budget = %f\n", budget);
-        System.out.printf("deadline = %f\n", deadline);
-        logWorkflowsDescription(dags, distributionNames, cloudsim);
 
         // Make the environment
         environment = EnvironmentFactory.createEnvironment(cloudsim,
@@ -367,47 +334,6 @@ public class MySimulation {
         double planningTime = algorithm.getPlanningnWallTime() / 1.0e9;
         double simulationTime = cloudsim.getSimulationWallTime() / 1.0e9;
         StorageManagerStatistics stats = environment.getStorageManagerStatistics();
-
-
-        // Write output to file
-        // ============================================================
-        PrintStream fileOut = null;
-        try {
-            fileOut = new PrintStream(new FileOutputStream(outputfile));
-            fileOut.println("application,distribution,seed,dags,scale,budget,"
-                            + "deadline,algorithm,completed,exponential,linear,"
-                            + "planning,simulation,scorebits,cost,jobfinish,dagfinish,"
-                            + "vmfinish,runtimeVariance,failureRate,minBudget," + "maxBudget,minDeadline,maxDeadline,"
-                            + "storageManagerType,totalBytesToRead,totalBytesToWrite,totalBytesToTransfer,"
-                            + "actualBytesRead,actualBytesTransferred,"
-                            + "totalFilesToRead,totalFilesToWrite,totalFilesToTransfer,"
-                            + "actualFilesRead,actualFilesTransferred");
-
-            fileOut.printf("%s,%s,%d,%d,", application, distribution, seed, ensembleSize);
-            fileOut.printf("%f,%f,%f,%s,", scalingFactor, budget, deadline, algorithm.getName());
-            fileOut.printf("%d,%.10f,%.10f,%f,", algorithmStatistics.getFinishedDags().size(),
-                           algorithmStatistics.getExponentialScore(), algorithmStatistics.getLinearScore(),
-                           planningTime);
-            fileOut.printf("%f,%s,%f,%f,%f,", simulationTime, algorithmStatistics.getScoreBitString(),
-                           algorithmStatistics.getActualCost(), algorithmStatistics.getActualJobFinishTime(),
-                           algorithmStatistics.getActualDagFinishTime());
-            fileOut.printf("%f,%f,%f,%f,%f,%f,%f,", algorithmStatistics.getActualVMFinishTime(),
-            VMFactory.getRuntimeVariance(), VMFactory.getFailureRate(), budget, budget,
-                           deadline, deadline);
-
-            fileOut.printf("%s,%d,%d,%d,%d,%d,", storageManagerType, stats.getTotalBytesToRead(),
-                           stats.getTotalBytesToWrite(), stats.getTotalBytesToRead() + stats.getTotalBytesToWrite(),
-                           stats.getActualBytesRead(), stats.getActualBytesRead() + stats.getTotalBytesToWrite());
-
-            fileOut.printf("%d,%d,%d,%d,%d\n", stats.getTotalFilesToRead(), stats.getTotalFilesToWrite(),
-                           stats.getTotalFilesToRead() + stats.getTotalFilesToWrite(), stats.getActualFilesRead(),
-                           stats.getActualFilesRead() + stats.getTotalFilesToWrite());
-
-        } catch (FileNotFoundException e) {
-            throw new RuntimeException(e);
-        } finally {
-            IOUtils.closeQuietly(fileOut);
-        }
     }
 
     private void logWorkflowsDescription(List<DAG> dags, String[] distributionNames,
@@ -423,24 +349,6 @@ public class MySimulation {
 
             cloudsim.log(workflowDescription);
         }
-    }
-
-    private void logVMType(VMType vmType) {
-        System.out.printf("VM mips = %f\n", vmType.getMips());
-        System.out.printf("VM cores = %d\n", vmType.getCores());
-        System.out.printf("VM price = %f\n", vmType.getPriceForBillingUnit());
-        System.out.printf("VM unit = %f\n", vmType.getBillingTimeInSeconds());
-        System.out.printf("VM cache = %d\n", vmType.getCacheSize());
-        System.out.printf("VM provisioningDelay = %s\n", vmType.getProvisioningDelay());
-        System.out.printf("VM deprovisioningDelay = %s\n", vmType.getDeprovisioningDelay());
-    }
-
-    private void logGlobalStorageParams(GlobalStorageParams globalStorageParams) {
-        System.out.printf("GS read speed = %f\n", globalStorageParams.getReadSpeed());
-        System.out.printf("GS write speed = %f\n", globalStorageParams.getWriteSpeed());
-        System.out.printf("GS latency = %f\n", globalStorageParams.getLatency());
-        System.out.printf("GS chunk transfer time = %f\n", globalStorageParams.getChunkTransferTime());
-        System.out.printf("GS replicas number = %d\n", globalStorageParams.getNumReplicas());
     }
 
     /**
