@@ -74,11 +74,6 @@ public class MySimulation {
     private static final String DEFAULT_SCALING_FACTOR = "1.0";
 
     /**
-     * Storage cache type. Allowed values: void, global.
-     */
-    private static final String DEFAULT_STORAGE_CACHE = "void";
-
-    /**
      * Whether to enable simulation logging. It is needed for validation and gantt graphs generation, but can decrease
      * performance especially if logs are dumped to stdout.
      */
@@ -105,23 +100,12 @@ public class MySimulation {
     private static final String DEFAULT_ALPHA = "0.7";
 
     /**
-     * Whether the algorithm should be aware of the underlying storage. I.e. during cumputing runtime estimations.
-     */
-    private static final String DEFAULT_IS_STORAGE_AWARE = "true";
-
-    /**
      * Loads VMType from file and/or from CLI args
      */
     private final VMTypeLoader vmTypeLoader;
 
-    /**
-     * Loads GlobalStorageParams from file and/or from CLI args
-     */
-    private final GlobalStorageParamsLoader globalStorageParamsLoader;
-
-    public MySimulation(VMTypeLoader vmTypeLoader, GlobalStorageParamsLoader globalStorageParamsLoader) {
+    public MySimulation(VMTypeLoader vmTypeLoader) {
         this.vmTypeLoader = vmTypeLoader;
-        this.globalStorageParamsLoader = globalStorageParamsLoader;
     }
 
     public static Options buildOptions() {
@@ -161,16 +145,6 @@ public class MySimulation {
         scalingFactor.setArgName("FACTOR");
         options.addOption(scalingFactor);
 
-        Option storageCache = new Option("sc", "storage-cache", true, "Storage cache, defaults to "
-                                         + DEFAULT_STORAGE_CACHE);
-        storageCache.setArgName("CACHE");
-        options.addOption(storageCache);
-
-        Option storageManager = new Option("sm", "storage-manager", true, "(required) Storage manager ");
-        storageManager.setRequired(true);
-        storageManager.setArgName("MRG");
-        options.addOption(storageManager);
-
         Option enableLogging = new Option("el", "enable-logging", true, "Whether to enable logging, defaults to "
                                           + DEFAULT_ENABLE_LOGGING);
         enableLogging.setArgName("BOOL");
@@ -203,11 +177,6 @@ public class MySimulation {
         alpha.setArgName("FLOAT");
         options.addOption(alpha);
 
-        Option isStorageAware = new Option("sa", "storage-aware", true,
-                                           "Whether the algorithms should be storage aware, defaults to " + DEFAULT_IS_STORAGE_AWARE);
-        isStorageAware.setArgName("BOOL");
-        options.addOption(isStorageAware);
-
         VMFactory.buildCliOptions(options);
 
         VMTypeLoader.buildCliOptions(options);
@@ -232,8 +201,7 @@ public class MySimulation {
         } catch (ParseException exp) {
             printUsage(options, exp.getMessage());
         }
-        MySimulation testRun = new MySimulation(new VMTypeLoader(),
-                                                new GlobalStorageParamsLoader());
+        MySimulation testRun = new MySimulation(new VMTypeLoader());
         try {
             testRun.runTest(cmd);
         } catch (IllegalCWSArgumentException e) {
@@ -254,13 +222,11 @@ public class MySimulation {
         int ensembleSize = 1;
         double scalingFactor = Double.parseDouble(args.getOptionValue("scaling-factor", DEFAULT_SCALING_FACTOR));
         long seed = Long.parseLong(args.getOptionValue("seed", System.currentTimeMillis() + ""));
-        String storageCacheType = args.getOptionValue("storage-cache", DEFAULT_STORAGE_CACHE);
         boolean enableLogging = Boolean.valueOf(args.getOptionValue("enable-logging", DEFAULT_ENABLE_LOGGING));
         int nbudgets = Integer.parseInt(args.getOptionValue("n-budgets", DEFAULT_N_BUDGETS));
         int ndeadlines = Integer.parseInt(args.getOptionValue("n-deadlines", DEFAULT_N_DEADLINES));
         double maxScaling = Double.parseDouble(args.getOptionValue("max-scaling", DEFAULT_MAX_SCALING));
         double alpha = Double.parseDouble(args.getOptionValue("max-scaling", DEFAULT_ALPHA));
-        boolean isStorageAware = Boolean.valueOf(args.getOptionValue("storage-aware", DEFAULT_IS_STORAGE_AWARE));
 
         VMType vmType = vmTypeLoader.determineVMType(args);
 
@@ -291,31 +257,19 @@ public class MySimulation {
         String[] distributionNames = distributionFactory(inputName, distribution,
                                                          ensembleSize, seed);
 
-        StorageSimulationParams simulationParams = new StorageSimulationParams();
-
-        if (storageCacheType.equals("fifo")) {
-            simulationParams.setStorageCacheType(StorageCacheType.FIFO);
-        } else if (storageCacheType.equals("void")) {
-            simulationParams.setStorageCacheType(StorageCacheType.VOID);
-        } else {
-            throw new IllegalCWSArgumentException("Wrong storage-cache:" + storageCacheType);
-        }
-
         // Use trivial storage simulation only
+        StorageSimulationParams simulationParams = new StorageSimulationParams();
+        simulationParams.setStorageCacheType(StorageCacheType.VOID);
         simulationParams.setStorageType(StorageType.VOID);
 
 
-        List<DAG> dags = new ArrayList<DAG>();
-        Environment environment = EnvironmentFactory.createEnvironment(cloudsim, simulationParams, vmType,
-                                                                       false);
-
         // Make the environment
-        environment = EnvironmentFactory.createEnvironment(cloudsim,
-                                                           simulationParams,
-                                                           vmType,
-                                                           isStorageAware);
+        Environment environment = EnvironmentFactory.createEnvironment
+            (cloudsim, simulationParams, vmType, false);
+
 
         // Make the algorithm
+        List<DAG> dags = new ArrayList<DAG>();
         Algorithm algorithm = createAlgorithm(alpha, maxScaling, algorithmName,
                                               cloudsim, dags, budget, deadline);
         algorithm.setEnvironment(environment);
