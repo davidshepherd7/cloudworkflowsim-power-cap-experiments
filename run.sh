@@ -18,8 +18,7 @@ java -cp 'lib/*:bin/' driver.MySimulation \
     --input-dir '../example_workflows/dags' \
     --output-file "$out_base" \
     --application GENOME \
-    --distribution pareto_unsorted \
-    --algorithm SPSS
+    --distribution pareto_unsorted
 
 # parse
 cd ~/workflows/cloudworkflowsimulator/scripts

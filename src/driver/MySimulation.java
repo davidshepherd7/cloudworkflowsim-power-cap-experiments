@@ -135,11 +135,6 @@ public class MySimulation {
         distribution.setArgName("DIST");
         options.addOption(distribution);
 
-        Option algorithm = new Option("alg", "algorithm", true, "(required) Algorithm");
-        algorithm.setRequired(true);
-        algorithm.setArgName("ALGO");
-        options.addOption(algorithm);
-
         Option scalingFactor = new Option("sf", "scaling-factor", true, "Scaling factor, defaults to "
                                           + DEFAULT_SCALING_FACTOR);
         scalingFactor.setArgName("FACTOR");
@@ -211,7 +206,6 @@ public class MySimulation {
 
     public void runTest(CommandLine args) {
         // Arguments with no defaults
-        String algorithmName = args.getOptionValue("algorithm");
         String application = args.getOptionValue("application");
         File inputdir = new File(args.getOptionValue("input-dir"));
         File outputfile = new File(args.getOptionValue("output-file"));
@@ -276,9 +270,11 @@ public class MySimulation {
         logWorkflowsDescription(dags, distributionNames, cloudsim);
 
         // Make the algorithm
-        Algorithm algorithm = createAlgorithm(alpha, maxScaling, algorithmName,
-                                              cloudsim, dags, budget,
-                                              deadline, environment);
+        AlgorithmStatistics ensembleStatistics = 
+            new AlgorithmStatistics(dags, budget, deadline, cloudsim);
+        Algorithm algorithm = new SPSS(budget, deadline, dags, alpha, 
+                                       ensembleStatistics, environment, 
+                                       cloudsim);
 
 
         // Run
@@ -306,23 +302,7 @@ public class MySimulation {
                               dags.size() - i,
                               distributionNames[i]);
 
-                cloudsim.log(workflowDescription);
-            }
-        }
-
-    /**
-     * Crates algorithm instance from the given input params.
-     * @param environment
-     * @return The newly created algorithm instance.
-     */
-    protected Algorithm createAlgorithm(double alpha, double maxScaling, String algorithmName,
-                                        CloudSimWrapper cloudsim, List<DAG> dags, double budget, double deadline, Environment environment) {
-        AlgorithmStatistics ensembleStatistics = new AlgorithmStatistics(dags, budget, deadline, cloudsim);
-
-        if ("SPSS".equals(algorithmName)) {
-            return new SPSS(budget, deadline, dags, alpha, ensembleStatistics, environment, cloudsim);
-        } else {
-            throw new IllegalCWSArgumentException("Unknown algorithm: " + algorithmName);
+            cloudsim.log(workflowDescription);
         }
     }
 
