@@ -148,16 +148,6 @@ public class MySimulation {
         budget.setArgName("BUDGET");
         options.addOption(budget);
 
-        Option nBudgets = new Option("nb", "n-budgets", true, "Optional number of generated budgets, defaults to "
-                                     + DEFAULT_N_BUDGETS);
-        nBudgets.setArgName("N");
-        options.addOption(nBudgets);
-
-        Option nDeadlines = new Option("nd", "n-deadlines", true,
-                                       "Optional number of generated deadlines, defaults to " + DEFAULT_N_DEADLINES);
-        nDeadlines.setArgName("N");
-        options.addOption(nDeadlines);
-
         Option maxScaling = new Option("ms", "max-scaling", true,
                                        "Optional maximum VM number scaling factor, defaults to " + DEFAULT_MAX_SCALING);
         maxScaling.setArgName("FLOAT");
@@ -211,8 +201,6 @@ public class MySimulation {
         int ensembleSize = 1;
         double scalingFactor = Double.parseDouble(args.getOptionValue("scaling-factor", DEFAULT_SCALING_FACTOR));
         long seed = Long.parseLong(args.getOptionValue("seed", System.currentTimeMillis() + ""));
-        int nbudgets = Integer.parseInt(args.getOptionValue("n-budgets", DEFAULT_N_BUDGETS));
-        int ndeadlines = Integer.parseInt(args.getOptionValue("n-deadlines", DEFAULT_N_DEADLINES));
         double maxScaling = Double.parseDouble(args.getOptionValue("max-scaling", DEFAULT_MAX_SCALING));
         double alpha = Double.parseDouble(args.getOptionValue("max-scaling", DEFAULT_ALPHA));
 
