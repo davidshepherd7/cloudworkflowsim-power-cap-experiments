@@ -234,8 +234,8 @@ public class MySimulation {
 
 
 
-        double budget = Double.valueOf(args.getOptionValue("budget", "1.0"));
-        double deadline = Double.valueOf(args.getOptionValue("deadline", "1.0"));
+        double budget = Double.valueOf(args.getOptionValue("budget", "1e10"));
+        double deadline = Double.valueOf(args.getOptionValue("deadline", "1e10"));
 
 
         // Make CloudSim object
