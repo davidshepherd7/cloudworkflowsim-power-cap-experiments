@@ -270,6 +270,11 @@ public class MySimulation {
         // Parse the dags
         List<DAG> dags = parseDags(distributionNames, scalingFactor);
 
+        // Initial logs
+        cloudsim.log("budget = " + budget);
+        cloudsim.log("deadline = " + deadline);
+        logWorkflowsDescription(dags, distributionNames, cloudsim);
+
         // Make the algorithm
         Algorithm algorithm = createAlgorithm(alpha, maxScaling, algorithmName,
                                               cloudsim, dags, budget,
