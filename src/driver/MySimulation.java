@@ -36,7 +36,7 @@ import cws.core.dag.Task;
 import cws.core.engine.Environment;
 import cws.core.engine.EnvironmentFactory;
 import cws.core.exception.IllegalCWSArgumentException;
-import cws.core.provisioner.VMFactory;
+import cws.core.VMFactory;
 import cws.core.storage.StorageManagerStatistics;
 import cws.core.storage.global.GlobalStorageParams;
 
@@ -265,16 +265,15 @@ public class MySimulation {
 
         // Make the environment
         Environment environment = EnvironmentFactory.createEnvironment
-            (cloudsim, simulationParams, vmType, false);
+            (cloudsim, simulationParams, vmType);
 
         // Parse the dags
         List<DAG> dags = parseDags(distributionNames, scalingFactor);
 
         // Make the algorithm
         Algorithm algorithm = createAlgorithm(alpha, maxScaling, algorithmName,
-                                              cloudsim, dags, budget, deadline);
-        algorithm.setEnvironment(environment);
-
+                                              cloudsim, dags, budget,
+                                              deadline, environment);
 
 
         // Run
@@ -302,76 +301,71 @@ public class MySimulation {
                               dags.size() - i,
                               distributionNames[i]);
 
-            cloudsim.log(workflowDescription);
-        }
-    }
-
-    /**
-     * Crates algorithm instance from the given input params.
-     * @return The newly created algorithm instance.
-     */
-    protected Algorithm createAlgorithm(double alpha, double maxScaling,
-                                        String algorithmName,
-                                        CloudSimWrapper cloudsim, List<DAG> dags,
-                                        double budget, double deadline) {
-        AlgorithmStatistics ensembleStatistics = new AlgorithmStatistics(dags, cloudsim);
-
-        if ("SPSS".equals(algorithmName)) {
-            return new SPSS(budget, deadline, dags, alpha, ensembleStatistics, cloudsim);
-        } else if ("DPDS".equals(algorithmName)) {
-            return new DPDS(budget, deadline, dags, maxScaling, ensembleStatistics, cloudsim);
-        } else if ("WADPDS".equals(algorithmName)) {
-            return new WADPDS(budget, deadline, dags, maxScaling, ensembleStatistics, cloudsim);
-        } else {
-            throw new IllegalCWSArgumentException("Unknown algorithm: " + algorithmName);
-        }
-    }
-
-    /**
-     * Returns output stream for logs for current simulation.
-     * @param budget The simulation's budget.
-     * @param deadline The simulation's deadline.
-     * @param outputfile The simulation's main output file.
-     * @return Output stream for logs for current simulation.
-     */
-    private OutputStream getLogOutputStream(double budget, double deadline,
-                                            File outputfile) {
-        String name = String.format("%s.b-%.2f-d-%.2f.log",
-                                    outputfile.getAbsolutePath(),
-                                    budget, deadline);
-        try {
-            return new FileOutputStream(new File(name));
-        } catch (FileNotFoundException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    // Load dags from files
-    private List<DAG> parseDags(String[] distributionNames, double scalingFactor)
-    {
-        List<DAG> dags = new ArrayList<DAG>();
-        int workflow_id = 0;
-
-        for (String name : distributionNames) {
-            DAG dag = DAGParser.parseDAG(new File(name));
-            dag.setId(new Integer(workflow_id).toString());
-
-            System.out.println(String.format("Workflow %d, priority = %d, filename = %s",
-                                             workflow_id,
-                                             distributionNames.length - workflow_id,
-                                             name));
-
-            workflow_id++;
-            dags.add(dag);
-
-            if (scalingFactor > 1.0) {
-                for (String tid : dag.getTasks()) {
-                    Task t = dag.getTaskById(tid);
-                    t.scaleSize(scalingFactor);
-                }
+                cloudsim.log(workflowDescription);
             }
         }
-        return dags;
-    }
 
-}
+        /**
+         * Crates algorithm instance from the given input params.
+         * @param environment
+         * @return The newly created algorithm instance.
+         */
+        protected Algorithm createAlgorithm(double alpha, double maxScaling, String algorithmName,
+                                            CloudSimWrapper cloudsim, List<DAG> dags, double budget, double deadline, Environment environment) {
+            AlgorithmStatistics ensembleStatistics = new AlgorithmStatistics(dags, budget, deadline, cloudsim);
+
+            if ("SPSS".equals(algorithmName)) {
+                return new SPSS(budget, deadline, dags, alpha, ensembleStatistics, environment, cloudsim);
+            } else {
+                throw new IllegalCWSArgumentException("Unknown algorithm: " + algorithmName);
+            }
+        }
+
+        /**
+         * Returns output stream for logs for current simulation.
+         * @param budget The simulation's budget.
+         * @param deadline The simulation's deadline.
+         * @param outputfile The simulation's main output file.
+         * @return Output stream for logs for current simulation.
+         */
+        private OutputStream getLogOutputStream(double budget, double deadline,
+                                                File outputfile) {
+            String name = String.format("%s.b-%.2f-d-%.2f.log",
+                                        outputfile.getAbsolutePath(),
+                                        budget, deadline);
+            try {
+                return new FileOutputStream(new File(name));
+            } catch (FileNotFoundException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        // Load dags from files
+        private List<DAG> parseDags(String[] distributionNames, double scalingFactor)
+        {
+            List<DAG> dags = new ArrayList<DAG>();
+            int workflow_id = 0;
+
+            for (String name : distributionNames) {
+                DAG dag = DAGParser.parseDAG(new File(name));
+                dag.setId(new Integer(workflow_id).toString());
+
+                System.out.println(String.format("Workflow %d, priority = %d, filename = %s",
+                                                 workflow_id,
+                                                 distributionNames.length - workflow_id,
+                                                 name));
+
+                workflow_id++;
+                dags.add(dag);
+
+                if (scalingFactor > 1.0) {
+                    for (String tid : dag.getTasks()) {
+                        Task t = dag.getTaskById(tid);
+                        t.scaleSize(scalingFactor);
+                    }
+                }
+            }
+            return dags;
+        }
+
+    }
