@@ -17,7 +17,8 @@ rm ${out_dir}/*
 java -cp 'lib/*:bin/' driver.MySimulation \
     --input-dir '../example_workflows/dags' \
     --output-file "$out_base" \
-    --application GENOME
+    --application MONTAGE
+# GENOME LIGO SIPHT MONTAGE CYBERSHAKE
 
 # parse
 cd ~/workflows/cloudworkflowsimulator/scripts
