@@ -15,10 +15,9 @@
   <property name="test.reports.dir" location="${test.data.dir}/reports"/>
 
 
-  <!-- Hack to include all jars via links (my java can't resolve links) -->
+  <!-- Include all jars via links (from cws) -->
   <path id="build.classpath">
     <fileset dir="lib" includes="*.jar"/>
-    <fileset dir="lib2" includes="*.jar"/>
   </path>
 
 
