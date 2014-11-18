@@ -48,37 +48,6 @@ import cws.core.simulation.StorageCacheType;
 public class MySimulation {
 
     /**
-     * The scaling factor for jobs' runtimes.
-     */
-    private static final String DEFAULT_SCALING_FACTOR = "1.0";
-
-    /**
-     * Whether to enable simulation logging. It is needed for validation and gantt graphs generation, but can decrease
-     * performance especially if logs are dumped to stdout.
-     */
-    private static final String DEFAULT_ENABLE_LOGGING = "true";
-
-    /**
-     * Number of budgets generated. It is ignored when budget is explicitly set.
-     */
-    private static final String DEFAULT_N_BUDGETS = "10";
-
-    /**
-     * Number of deadlines generated. It is ignored when deadline is explicitly set.
-     */
-    private static final String DEFAULT_N_DEADLINES = "10";
-
-    /**
-     * How many times more can the number of VMs be increased? 1.0 means 0%, 2.0 means 100%, etc..
-     */
-    private static final String DEFAULT_MAX_SCALING = "1.0";
-
-    /**
-     * The algorithm alpha parameter.
-     */
-    private static final String DEFAULT_ALPHA = "0.7";
-
-    /**
      * Loads VMType from file and/or from CLI args
      */
     private final VMTypeLoader vmTypeLoader;
@@ -89,10 +58,6 @@ public class MySimulation {
 
     public static Options buildOptions() {
         Options options = new Options();
-
-        Option seed = new Option("s", "seed", true, "Random number generator seed, defaults to current time in milis");
-        seed.setArgName("SEED");
-        options.addOption(seed);
 
         Option application = new Option("app", "application", true, "(required) Application name");
         application.setRequired(true);
@@ -109,11 +74,6 @@ public class MySimulation {
         outputfile.setArgName("FILE");
         options.addOption(outputfile);
 
-        Option scalingFactor = new Option("sf", "scaling-factor", true, "Scaling factor, defaults to "
-                                          + DEFAULT_SCALING_FACTOR);
-        scalingFactor.setArgName("FACTOR");
-        options.addOption(scalingFactor);
-
         Option deadline = new Option("d", "deadline", true, "Optional deadline, which overrides max and min deadlines");
         deadline.setArgName("DEADLINE");
         options.addOption(deadline);
@@ -121,15 +81,6 @@ public class MySimulation {
         Option budget = new Option("b", "budget", true, "Optional budget, which overrides max and min budgets");
         budget.setArgName("BUDGET");
         options.addOption(budget);
-
-        Option maxScaling = new Option("ms", "max-scaling", true,
-                                       "Optional maximum VM number scaling factor, defaults to " + DEFAULT_MAX_SCALING);
-        maxScaling.setArgName("FLOAT");
-        options.addOption(maxScaling);
-
-        Option alpha = new Option("alp", "alpha", true, "Optional alpha factor, defaults to " + DEFAULT_ALPHA);
-        alpha.setArgName("FLOAT");
-        options.addOption(alpha);
 
         VMFactory.buildCliOptions(options);
 
@@ -163,30 +114,23 @@ public class MySimulation {
     }
 
     public void runTest(CommandLine args) {
-        // Arguments with no defaults
+
+        // Parse arguments
         String application = args.getOptionValue("application");
         File inputdir = new File(args.getOptionValue("input-dir"));
-        File outputfile = new File(args.getOptionValue("output-file"));
-
-        // Arguments with defaults
-        double scalingFactor = Double.parseDouble(args.getOptionValue("scaling-factor", DEFAULT_SCALING_FACTOR));
-        long seed = Long.parseLong(args.getOptionValue("seed", System.currentTimeMillis() + ""));
-        double maxScaling = Double.parseDouble(args.getOptionValue("max-scaling", DEFAULT_MAX_SCALING));
-        double alpha = Double.parseDouble(args.getOptionValue("max-scaling", DEFAULT_ALPHA));
-
-        VMType vmType = vmTypeLoader.determineVMType(args);
-        VMFactory.readCliOptions(args, seed);
-
+        File outputfile = new File(args.getOptionValue("output-file")); 
         double budget = Double.valueOf(args.getOptionValue("budget", "1e10"));
         double deadline = Double.valueOf(args.getOptionValue("deadline", "1e10"));
 
+        // Make VMType and VMFactory objects
+        VMType vmType = vmTypeLoader.determineVMType(args);
+        VMFactory.readCliOptions(args, System.currentTimeMillis());
 
         // Make CloudSim object
         OutputStream logStream = getLogOutputStream(budget, deadline, outputfile);
         CloudSimWrapper cloudsim = new CloudSimWrapper(logStream);
         cloudsim.init();
         cloudsim.setLogsEnabled(true);
-
 
         // We do not need Cloudsim's logs. We have our own.
         Log.disable();
@@ -195,22 +139,19 @@ public class MySimulation {
         String inputName = inputdir.getAbsolutePath() + "/" + application;
         Random rand = new Random(System.currentTimeMillis());
         String[] distributionNames = 
-            DAGListGenerator.generateDAGListUniformUnsorted(rand,
-                                                            inputName, 
-                                                            1);
+            DAGListGenerator.generateDAGListUniformUnsorted(rand, inputName, 1);
 
         // Use trivial storage simulation only
         StorageSimulationParams simulationParams = new StorageSimulationParams();
         simulationParams.setStorageCacheType(StorageCacheType.VOID);
         simulationParams.setStorageType(StorageType.VOID);
 
-
         // Make the environment
         Environment environment = EnvironmentFactory.createEnvironment
             (cloudsim, simulationParams, vmType);
 
         // Parse the dags
-        List<DAG> dags = parseDags(distributionNames, scalingFactor);
+        List<DAG> dags = parseDags(distributionNames, 1.0);
 
         // Initial logs
         cloudsim.log("budget = " + budget);
@@ -220,7 +161,7 @@ public class MySimulation {
         // Make the algorithm
         AlgorithmStatistics ensembleStatistics = 
             new AlgorithmStatistics(dags, budget, deadline, cloudsim);
-        Algorithm algorithm = new SPSS(budget, deadline, dags, alpha, 
+        Algorithm algorithm = new SPSS(budget, deadline, dags, 0.7, 
                                        ensembleStatistics, environment, 
                                        cloudsim);
 
