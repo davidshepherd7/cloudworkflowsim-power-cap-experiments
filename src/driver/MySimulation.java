@@ -140,11 +140,6 @@ public class MySimulation {
         scalingFactor.setArgName("FACTOR");
         options.addOption(scalingFactor);
 
-        Option enableLogging = new Option("el", "enable-logging", true, "Whether to enable logging, defaults to "
-                                          + DEFAULT_ENABLE_LOGGING);
-        enableLogging.setArgName("BOOL");
-        options.addOption(enableLogging);
-
         Option deadline = new Option("d", "deadline", true, "Optional deadline, which overrides max and min deadlines");
         deadline.setArgName("DEADLINE");
         options.addOption(deadline);
@@ -216,7 +211,6 @@ public class MySimulation {
         int ensembleSize = 1;
         double scalingFactor = Double.parseDouble(args.getOptionValue("scaling-factor", DEFAULT_SCALING_FACTOR));
         long seed = Long.parseLong(args.getOptionValue("seed", System.currentTimeMillis() + ""));
-        boolean enableLogging = Boolean.valueOf(args.getOptionValue("enable-logging", DEFAULT_ENABLE_LOGGING));
         int nbudgets = Integer.parseInt(args.getOptionValue("n-budgets", DEFAULT_N_BUDGETS));
         int ndeadlines = Integer.parseInt(args.getOptionValue("n-deadlines", DEFAULT_N_DEADLINES));
         double maxScaling = Double.parseDouble(args.getOptionValue("max-scaling", DEFAULT_MAX_SCALING));
@@ -233,14 +227,10 @@ public class MySimulation {
 
 
         // Make CloudSim object
-        CloudSimWrapper cloudsim = null;
-        if (enableLogging) {
-            cloudsim = new CloudSimWrapper(getLogOutputStream(budget, deadline, outputfile));
-        } else {
-            cloudsim = new CloudSimWrapper();
-        }
+        OutputStream logStream = getLogOutputStream(budget, deadline, outputfile);
+        CloudSimWrapper cloudsim = new CloudSimWrapper(logStream);
         cloudsim.init();
-        cloudsim.setLogsEnabled(enableLogging);
+        cloudsim.setLogsEnabled(true);
 
 
         // We do not need Cloudsim's logs. We have our own.
