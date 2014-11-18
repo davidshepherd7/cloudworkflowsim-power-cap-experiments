@@ -17,8 +17,7 @@ rm ${out_dir}/*
 java -cp 'lib/*:bin/' driver.MySimulation \
     --input-dir '../example_workflows/dags' \
     --output-file "$out_base" \
-    --application GENOME \
-    --distribution pareto_unsorted
+    --application GENOME
 
 # parse
 cd ~/workflows/cloudworkflowsimulator/scripts

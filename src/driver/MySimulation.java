@@ -37,9 +37,8 @@ import cws.core.engine.Environment;
 import cws.core.engine.EnvironmentFactory;
 import cws.core.exception.IllegalCWSArgumentException;
 import cws.core.VMFactory;
-import cws.core.storage.StorageManagerStatistics;
-import cws.core.storage.global.GlobalStorageParams;
 
+import cws.core.storage.StorageManagerStatistics;
 import cws.core.simulation.StorageSimulationParams;
 import cws.core.simulation.StorageType;
 import cws.core.simulation.StorageCacheType;
@@ -47,26 +46,6 @@ import cws.core.simulation.StorageCacheType;
 
 
 public class MySimulation {
-
-    public String[] distributionFactory(String inputName, String distribution,
-                                        int ensembleSize, long seed) {
-        if ("uniform_unsorted".equals(distribution)) {
-            return DAGListGenerator.generateDAGListUniformUnsorted(new Random(seed), inputName, ensembleSize);
-        } else if ("uniform_sorted".equals(distribution)) {
-            return DAGListGenerator.generateDAGListUniform(new Random(seed), inputName, ensembleSize);
-        } else if ("pareto_unsorted".equals(distribution)) {
-            return DAGListGenerator.generateDAGListParetoUnsorted(new Random(seed), inputName, ensembleSize);
-        } else if ("pareto_sorted".equals(distribution)) {
-            return DAGListGenerator.generateDAGListPareto(new Random(seed), inputName, ensembleSize);
-        } else if ("constant".equals(distribution)) {
-            return DAGListGenerator.generateDAGListConstant(new Random(seed), inputName, ensembleSize);
-        } else if (distribution.startsWith("fixed")) {
-            int size = Integer.parseInt(distribution.substring(5));
-            return DAGListGenerator.generateDAGListConstant(inputName, size, ensembleSize);
-        } else {
-            throw new IllegalCWSArgumentException("Unrecognized distribution: " + distribution);
-        }
-    }
 
     /**
      * The scaling factor for jobs' runtimes.
@@ -130,11 +109,6 @@ public class MySimulation {
         outputfile.setArgName("FILE");
         options.addOption(outputfile);
 
-        Option distribution = new Option("dst", "distribution", true, "(required) Distribution");
-        distribution.setRequired(true);
-        distribution.setArgName("DIST");
-        options.addOption(distribution);
-
         Option scalingFactor = new Option("sf", "scaling-factor", true, "Scaling factor, defaults to "
                                           + DEFAULT_SCALING_FACTOR);
         scalingFactor.setArgName("FACTOR");
@@ -160,7 +134,6 @@ public class MySimulation {
         VMFactory.buildCliOptions(options);
 
         VMTypeLoader.buildCliOptions(options);
-        GlobalStorageParamsLoader.buildCliOptions(options);
 
         return options;
     }
@@ -194,21 +167,15 @@ public class MySimulation {
         String application = args.getOptionValue("application");
         File inputdir = new File(args.getOptionValue("input-dir"));
         File outputfile = new File(args.getOptionValue("output-file"));
-        String distribution = args.getOptionValue("distribution");
-        String storageManagerType = args.getOptionValue("storage-manager");
 
         // Arguments with defaults
-        int ensembleSize = 1;
         double scalingFactor = Double.parseDouble(args.getOptionValue("scaling-factor", DEFAULT_SCALING_FACTOR));
         long seed = Long.parseLong(args.getOptionValue("seed", System.currentTimeMillis() + ""));
         double maxScaling = Double.parseDouble(args.getOptionValue("max-scaling", DEFAULT_MAX_SCALING));
         double alpha = Double.parseDouble(args.getOptionValue("max-scaling", DEFAULT_ALPHA));
 
         VMType vmType = vmTypeLoader.determineVMType(args);
-
         VMFactory.readCliOptions(args, seed);
-
-
 
         double budget = Double.valueOf(args.getOptionValue("budget", "1e10"));
         double deadline = Double.valueOf(args.getOptionValue("deadline", "1e10"));
@@ -226,8 +193,11 @@ public class MySimulation {
 
         // Determine the distribution
         String inputName = inputdir.getAbsolutePath() + "/" + application;
-        String[] distributionNames = distributionFactory(inputName, distribution,
-                                                         ensembleSize, seed);
+        Random rand = new Random(System.currentTimeMillis());
+        String[] distributionNames = 
+            DAGListGenerator.generateDAGListUniformUnsorted(rand,
+                                                            inputName, 
+                                                            1);
 
         // Use trivial storage simulation only
         StorageSimulationParams simulationParams = new StorageSimulationParams();
