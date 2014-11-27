@@ -9,6 +9,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
+import java.util.Set;
+import java.util.HashSet;
+
+
+
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.HelpFormatter;
@@ -19,11 +24,24 @@ import org.apache.commons.cli.PosixParser;
 import org.apache.commons.io.IOUtils;
 import org.cloudbus.cloudsim.Log;
 
+import cws.core.Cloud;
+import cws.core.VM;
+import cws.core.EnsembleManager;
+import cws.core.WorkflowEngine;
+import cws.core.WorkflowEvent;
+
+
 import cws.core.algorithms.Algorithm;
 import cws.core.algorithms.AlgorithmStatistics;
 import cws.core.algorithms.DPDS;
 import cws.core.algorithms.SPSS;
 import cws.core.algorithms.WADPDS;
+import cws.core.algorithms.DynamicAlgorithm;
+import cws.core.algorithms.heterogeneous.StaticHeterogeneousAlgorithm;
+
+
+
+
 import cws.core.cloudsim.CloudSimWrapper;
 import cws.core.config.GlobalStorageParamsLoader;
 import cws.core.core.VMType;
@@ -37,6 +55,16 @@ import cws.core.engine.Environment;
 import cws.core.engine.EnvironmentFactory;
 import cws.core.exception.IllegalCWSArgumentException;
 import cws.core.VMFactory;
+
+import cws.core.Scheduler;
+import cws.core.scheduler.DAGSchedulerFCFS;
+import cws.core.Provisioner;
+import cws.core.provisioner.NullProvisioner;
+import cws.core.provisioner.CloudAwareProvisioner;
+import cws.core.provisioner.SimpleUtilizationBasedProvisioner;
+
+
+
 
 import cws.core.storage.StorageManagerStatistics;
 import cws.core.simulation.StorageSimulationParams;
@@ -118,9 +146,9 @@ public class MySimulation {
         // Parse arguments
         String application = args.getOptionValue("application");
         File inputdir = new File(args.getOptionValue("input-dir"));
-        File outputfile = new File(args.getOptionValue("output-file")); 
-        double budget = Double.valueOf(args.getOptionValue("budget", "1e10"));
-        double deadline = Double.valueOf(args.getOptionValue("deadline", "1e10"));
+        File outputfile = new File(args.getOptionValue("output-file"));
+        double budget = Double.valueOf(args.getOptionValue("budget", "100000"));
+        double deadline = Double.valueOf(args.getOptionValue("deadline", "100000"));
 
         // Make VMType and VMFactory objects
         VMType vmType = vmTypeLoader.determineVMType(args);
@@ -138,8 +166,8 @@ public class MySimulation {
         // Determine the distribution
         String inputName = inputdir.getAbsolutePath() + "/" + application;
         Random rand = new Random(System.currentTimeMillis());
-        String[] distributionNames = 
-            DAGListGenerator.generateDAGListUniformUnsorted(rand, inputName, 1);
+        String[] distributionNames =
+            DAGListGenerator.generateDAGListConstant(inputName, 50, 1);
 
         // Use trivial storage simulation only
         StorageSimulationParams simulationParams = new StorageSimulationParams();
@@ -158,16 +186,53 @@ public class MySimulation {
         cloudsim.log("deadline = " + deadline);
         logWorkflowsDescription(dags, distributionNames, cloudsim);
 
+
+        // Build our cloud
+        Cloud cloud = new Cloud(cloudsim);
+        Set<VM> vms = new HashSet<VM>();
+        for (int i = 0; i < 10; i++) {
+            VM vm = VMFactory.createVM(vmType, cloudsim);
+            vms.add(vm);
+        }
+
         // Make the algorithm
-        AlgorithmStatistics ensembleStatistics = 
+        AlgorithmStatistics ensembleStatistics =
             new AlgorithmStatistics(dags, budget, deadline, cloudsim);
-        Algorithm algorithm = new SPSS(budget, deadline, dags, 0.7, 
-                                       ensembleStatistics, environment, 
-                                       cloudsim);
+
+        // Scheduler scheduler = new DAGSchedulerFCFS();
+        Provisioner provisioner = new NullProvisioner();
+        StaticHeterogeneousAlgorithm staticAlgo = new StaticHeterogeneousAlgorithm
+            (budget, deadline, dags, ensembleStatistics, cloudsim);
+        Algorithm algorithm = staticAlgo;
+        Scheduler scheduler = staticAlgo;
+
+        WorkflowEngine engine = new WorkflowEngine(provisioner, scheduler,
+                                                   budget, deadline, cloudsim);
+        EnsembleManager manager = new EnsembleManager(engine, cloudsim);
+
+        algorithm.setWorkflowEngine(engine);
+        algorithm.setCloud(cloud);
+        algorithm.setEnsembleManager(manager);
+        // cloud.addVMListener(algorithm);
+        // engine.addJobListener(algorithm);
+
+
+        // // launch VMs
+        // for(VM vm : vms) {
+        //     cloudsim.send(engine.getId(), cloud.getId(), 0.0,
+        //                   WorkflowEvent.VM_LAUNCH, vm);
+        // }
+
+        // // kill VMs before deadline
+        // for(VM vm : vms) {
+        //     double delay = vm.getVmType().getDeprovisioningDelayEstimation()*2;
+        //     cloudsim.send(engine.getId(), cloud.getId(), deadline - delay,
+        //                   WorkflowEvent.VM_TERMINATE, vm);
+        // }
+
 
 
         // Run
-        // ============================================================
         algorithm.simulate();
 
 
