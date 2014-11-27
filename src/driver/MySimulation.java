@@ -38,6 +38,8 @@ import cws.core.algorithms.SPSS;
 import cws.core.algorithms.WADPDS;
 import cws.core.algorithms.DynamicAlgorithm;
 import cws.core.algorithms.heterogeneous.StaticHeterogeneousAlgorithm;
+import cws.core.algorithms.heterogeneous.Planner;
+import cws.core.algorithms.heterogeneous.TrivialPlanner;
 
 
 
@@ -62,7 +64,6 @@ import cws.core.Provisioner;
 import cws.core.provisioner.NullProvisioner;
 import cws.core.provisioner.CloudAwareProvisioner;
 import cws.core.provisioner.SimpleUtilizationBasedProvisioner;
-
 
 
 
@@ -186,23 +187,22 @@ public class MySimulation {
         cloudsim.log("deadline = " + deadline);
         logWorkflowsDescription(dags, distributionNames, cloudsim);
 
+        List<VMType> vmtypes = new ArrayList<VMType>();
+        vmtypes.add(vmType);
 
         // Build our cloud
         Cloud cloud = new Cloud(cloudsim);
-        Set<VM> vms = new HashSet<VM>();
-        for (int i = 0; i < 10; i++) {
-            VM vm = VMFactory.createVM(vmType, cloudsim);
-            vms.add(vm);
-        }
 
         // Make the algorithm
         AlgorithmStatistics ensembleStatistics =
             new AlgorithmStatistics(dags, budget, deadline, cloudsim);
 
-        // Scheduler scheduler = new DAGSchedulerFCFS();
         Provisioner provisioner = new NullProvisioner();
+        Planner planner = new TrivialPlanner();
+
         StaticHeterogeneousAlgorithm staticAlgo = new StaticHeterogeneousAlgorithm
-            (budget, deadline, dags, ensembleStatistics, cloudsim);
+            (budget, deadline, dags, ensembleStatistics,
+             planner, vmtypes, cloudsim);
         Algorithm algorithm = staticAlgo;
         Scheduler scheduler = staticAlgo;
 
