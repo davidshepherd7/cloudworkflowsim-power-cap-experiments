@@ -3,6 +3,9 @@
 set -o errexit
 set -o nounset
 
+# first install pegasus and graphviz with
+# `sudo apt-get install -yq pegasus-wms graphviz
+
 # Safely generate a temp file
 tmpfile=$(mktemp dagview-$USER.XXXXXXX --tmpdir)
 
