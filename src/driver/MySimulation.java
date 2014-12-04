@@ -5,10 +5,13 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.OutputStream;
 import java.io.PrintStream;
+
+import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
-
+import java.util.Map;
+import java.util.HashMap;
 import java.util.Set;
 import java.util.HashSet;
 
@@ -39,8 +42,9 @@ import cws.core.algorithms.WADPDS;
 import cws.core.algorithms.DynamicAlgorithm;
 import cws.core.algorithms.heterogeneous.StaticHeterogeneousAlgorithm;
 import cws.core.algorithms.heterogeneous.Planner;
+import cws.core.algorithms.heterogeneous.PowerCappedPlanner;
 import cws.core.algorithms.heterogeneous.TrivialPlanner;
-
+import cws.core.algorithms.heterogeneous.HeftPlanner;
 
 
 
@@ -187,22 +191,23 @@ public class MySimulation {
         cloudsim.log("deadline = " + deadline);
         logWorkflowsDescription(dags, distributionNames, cloudsim);
 
-        List<VMType> vmtypes = new ArrayList<VMType>();
-        vmtypes.add(vmType);
+        List<VMType> vms = Arrays.asList(vmType);
 
         // Build our cloud
         Cloud cloud = new Cloud(cloudsim);
 
-        // Make the algorithm
-        AlgorithmStatistics ensembleStatistics =
-            new AlgorithmStatistics(dags, budget, deadline, cloudsim);
+        final double powercap = 5;
 
         Provisioner provisioner = new NullProvisioner();
-        Planner planner = new TrivialPlanner();
+        Planner planner = new PowerCappedPlanner(powercap,
+                new HeftPlanner());
 
-        StaticHeterogeneousAlgorithm staticAlgo = new StaticHeterogeneousAlgorithm
-            (budget, deadline, dags, ensembleStatistics,
-             planner, vmtypes, cloudsim);
+        StaticHeterogeneousAlgorithm staticAlgo =
+            new StaticHeterogeneousAlgorithm.Builder(dags, planner, cloudsim)
+            .budget(budget)
+            .deadline(deadline)
+            .addInitialVMs(vms)
+            .build();
         Algorithm algorithm = staticAlgo;
         Scheduler scheduler = staticAlgo;
 
