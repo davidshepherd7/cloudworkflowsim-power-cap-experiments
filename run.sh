@@ -35,7 +35,12 @@ cd ~/workflows/cloudworkflowsimulator/scripts/visualisation
 find "$out_dir" -name '*.log.parsed' | parallel -n1 ruby plot_gantt.rb results {} {}.results
 find "$out_dir" -name '*.log.parsed' | parallel -n1 ruby plot_gantt.rb workflow {} {}.workflow
 
+# show output?
+if [ $# -gt 0 ]; then
+    cat ${out_dir}/simulation_out.csv.*.log
+fi
+
 # show plots?
-if [ $# -gt 0 ]; then 
+if [ $# -gt 1 ]; then
     eog ${out_dir}/*.png
 fi
