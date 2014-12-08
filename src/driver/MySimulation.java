@@ -50,6 +50,7 @@ import cws.core.algorithms.heterogeneous.Planner;
 import cws.core.algorithms.heterogeneous.PowerCappedPlanner;
 import cws.core.algorithms.heterogeneous.TrivialPlanner;
 import cws.core.algorithms.heterogeneous.HeftPlanner;
+import cws.core.algorithms.heterogeneous.PiecewiseConstantFunction;
 
 
 
@@ -201,10 +202,10 @@ public class MySimulation {
         // Build our cloud
         Cloud cloud = new Cloud(cloudsim);
 
-        TreeMap<Double, Double> powercap = new TreeMap<>();
-        powercap.put(0.0, 101.0); // 2 vms
-        powercap.put(10.0, 51.0); // 1 vm
-        powercap.put(20.0, 201.0); // 4 vms
+        PiecewiseConstantFunction powercap = new PiecewiseConstantFunction();
+        powercap.addJump(0.0, 101.0); // 2 vms
+        powercap.addJump(10.0, 51.0); // 1 vm
+        powercap.addJump(20.0, 201.0); // 4 vms
 
         Provisioner provisioner = new NullProvisioner();
         Planner planner = new PowerCappedPlanner(powercap,
@@ -256,6 +257,9 @@ public class MySimulation {
         double planningTime = algorithm.getPlanningnWallTime() / 1.0e9;
         double simulationTime = cloudsim.getSimulationWallTime() / 1.0e9;
         StorageManagerStatistics stats = environment.getStorageManagerStatistics();
+
+        System.out.println("Power usage was: "
+                + algorithmStatistics.getPowerUsage().toString());
     }
 
     private void logWorkflowsDescription(List<DAG> dags, String[] distributionNames,
