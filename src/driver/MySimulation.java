@@ -76,7 +76,12 @@ import cws.core.simulation.StorageCacheType;
 
 
 
-public class MySimulation {
+public final class MySimulation {
+
+    // Non-instantiable
+    private MySimulation() {
+        throw new AssertionError();
+    }
 
     public static interface Args {
         @Option String getInputDir();
@@ -94,11 +99,11 @@ public class MySimulation {
         VMType vmType = new VMTypeLoader().determineVMType(args.getVmFile());
 
         // Run
-        MySimulation testRun = new MySimulation();
-        testRun.runTest(args.getInputDir(), args.getOutputFile(), vmType);
+        // MySimulation testRun = new MySimulation();
+        runTest(args.getInputDir(), args.getOutputFile(), vmType);
     }
 
-    public void runTest(String inputDir, String OutputFile, VMType vmType) {
+    public static void runTest(String inputDir, String OutputFile, VMType vmType) {
 
         // Parse arguments
         String application = "MONTAGE"; // GENOME LIGO SIPHT MONTAGE CYBERSHAKE
@@ -186,7 +191,8 @@ public class MySimulation {
                 + algorithmStatistics.getPowerUsage().toString());
     }
 
-    private void logWorkflowsDescription(List<DAG> dags, String[] distributionNames,
+    private static void logWorkflowsDescription(List<DAG> dags,
+            String[] distributionNames,
             CloudSimWrapper cloudsim) {
         for (int i = 0; i < dags.size(); i++) {
             DAG dag = dags.get(i);
@@ -208,7 +214,7 @@ public class MySimulation {
      * @param outputfile The simulation's main output file.
      * @return Output stream for logs for current simulation.
      */
-    private OutputStream getLogOutputStream(double budget, double deadline,
+    private static OutputStream getLogOutputStream(double budget, double deadline,
             File outputfile) {
         String name = String.format("%s.b-%.2f-d-%.2f.log",
                 outputfile.getAbsolutePath(),
@@ -221,7 +227,7 @@ public class MySimulation {
     }
 
     // Load dags from files
-    private List<DAG> parseDags(String[] distributionNames, double scalingFactor)
+    private static List<DAG> parseDags(String[] distributionNames, double scalingFactor)
     {
         List<DAG> dags = new ArrayList<DAG>();
         int workflow_id = 0;
