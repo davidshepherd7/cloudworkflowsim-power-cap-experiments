@@ -5,19 +5,24 @@ set -o nounset
 
 out_dir="$(pwd)/out"
 out_base="${out_dir}/simulation_out.csv"
+root="../.."
 
-# compile
-ant clean compile
+# Create dirs
+mkdir -p $out_dir bin
 
 # clean
-touch "${out_dir}/temp"
+touch "${out_dir}/temp" bin/temp
 rm ${out_dir}/*
+rm -r bin/*
+
+# compile
+javac -cp "${root}/lib/*" -d bin/ src/*.java
 
 # run
-java -cp 'lib/*:bin/' driver.MySimulation \
-     --inputDir '../example_workflows/dags' \
+java -cp "${root}/lib/*:./bin" MySimulation \
+     --inputDir 'input/dags' \
      --outputFile "$out_base" \
-     --vmFile "./vms/default.vm.yaml" \
+     --vmFile "input/default.vm.yaml" \
      --application MONTAGE
 
 # GENOME LIGO SIPHT MONTAGE CYBERSHAKE
