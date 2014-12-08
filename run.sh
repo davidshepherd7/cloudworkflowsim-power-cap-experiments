@@ -15,8 +15,9 @@ rm ${out_dir}/*
 
 # run
 java -cp 'lib/*:bin/' driver.MySimulation \
-    --input-dir '../example_workflows/dags' \
-    --output-file "$out_base"
+     --inputDir '../example_workflows/dags' \
+     --outputFile "$out_base" \
+     --vmFile "./vms/default.vm.yaml"
 
 # parse
 cd ~/workflows/cloudworkflowsimulator/scripts

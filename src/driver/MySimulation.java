@@ -5,6 +5,8 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.OutputStream;
 import java.io.PrintStream;
+import java.io.FileInputStream;
+import java.io.InputStream;
 
 import java.util.Arrays;
 import java.util.ArrayList;
@@ -21,15 +23,11 @@ import static java.util.Collections.*;
 import java.util.SortedSet;
 import java.util.TreeMap;
 
+import com.lexicalscope.jewel.cli.Option;
+import com.lexicalscope.jewel.cli.ArgumentValidationException;
+import com.lexicalscope.jewel.cli.CliFactory;
+import org.yaml.snakeyaml.Yaml;
 
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.CommandLineParser;
-import org.apache.commons.cli.HelpFormatter;
-import org.apache.commons.cli.Option;
-import org.apache.commons.cli.Options;
-import org.apache.commons.cli.ParseException;
-import org.apache.commons.cli.PosixParser;
-import org.apache.commons.io.IOUtils;
 import org.cloudbus.cloudsim.Log;
 
 import cws.core.Cloud;
@@ -37,8 +35,6 @@ import cws.core.VM;
 import cws.core.EnsembleManager;
 import cws.core.WorkflowEngine;
 import cws.core.WorkflowEvent;
-
-
 import cws.core.algorithms.Algorithm;
 import cws.core.algorithms.AlgorithmStatistics;
 import cws.core.algorithms.DPDS;
@@ -51,8 +47,6 @@ import cws.core.algorithms.heterogeneous.PowerCappedPlanner;
 import cws.core.algorithms.heterogeneous.TrivialPlanner;
 import cws.core.algorithms.heterogeneous.HeftPlanner;
 import cws.core.algorithms.heterogeneous.PiecewiseConstantFunction;
-
-
 
 import cws.core.cloudsim.CloudSimWrapper;
 import cws.core.config.GlobalStorageParamsLoader;
@@ -75,8 +69,6 @@ import cws.core.provisioner.NullProvisioner;
 import cws.core.provisioner.CloudAwareProvisioner;
 import cws.core.provisioner.SimpleUtilizationBasedProvisioner;
 
-
-
 import cws.core.storage.StorageManagerStatistics;
 import cws.core.simulation.StorageSimulationParams;
 import cws.core.simulation.StorageType;
@@ -86,42 +78,24 @@ import cws.core.simulation.StorageCacheType;
 
 public class MySimulation {
 
-    public static Options buildOptions() {
-        Options options = new Options();
+    public static interface Args {
+        @Option String getInputDir();
 
-        Option inputdir = new Option("id", "input-dir", true, "(required) Input dir");
-        inputdir.setRequired(true);
-        inputdir.setArgName("DIR");
-        options.addOption(inputdir);
+        @Option String getOutputFile();
 
-        Option outputfile = new Option("of", "output-file", true, "(required) Output file");
-        outputfile.setRequired(true);
-        outputfile.setArgName("FILE");
-        options.addOption(outputfile);
-
-        VMFactory.buildCliOptions(options);
-
-        VMTypeLoader.buildCliOptions(options);
-
-        return options;
+        @Option String getVmFile();
     }
 
-    public static void main(String[] args) throws ParseException {
-        Options options = buildOptions();
-        CommandLine cmd = null;
+    public static void main(String[] commandLine)
+            throws ArgumentValidationException, FileNotFoundException {
 
-        CommandLineParser parser = new PosixParser();
-        cmd = parser.parse(options, args);
-        String inputDir = cmd.getOptionValue("input-dir");
-        String outputFile = cmd.getOptionValue("output-file");
+        // Read arguments
+        final Args args = CliFactory.parseArguments(Args.class, commandLine);
+        VMType vmType = new VMTypeLoader().determineVMType(args.getVmFile());
 
-        // Make VMType and VMFactory objects
-        VMTypeLoader vmTypeLoader = new VMTypeLoader();
-        VMType vmType = vmTypeLoader.determineVMType(cmd);
-        VMFactory.readCliOptions(cmd, System.currentTimeMillis());
-
+        // Run
         MySimulation testRun = new MySimulation();
-        testRun.runTest(inputDir, outputFile, vmType);
+        testRun.runTest(args.getInputDir(), args.getOutputFile(), vmType);
     }
 
     public void runTest(String inputDir, String OutputFile, VMType vmType) {
@@ -179,7 +153,7 @@ public class MySimulation {
         Planner planner = new PowerCappedPlanner(powercap,
                 new HeftPlanner());
 
-        StaticHeterogeneousAlgorithm staticAlgo = 
+        StaticHeterogeneousAlgorithm staticAlgo =
                 new StaticHeterogeneousAlgorithm.Builder(dags, planner, cloudsim)
                 .budget(budget)
                 .deadline(deadline)
@@ -195,24 +169,6 @@ public class MySimulation {
         algorithm.setWorkflowEngine(engine);
         algorithm.setCloud(cloud);
         algorithm.setEnsembleManager(manager);
-        // cloud.addVMListener(algorithm);
-        // engine.addJobListener(algorithm);
-
-
-        // // launch VMs
-        // for(VM vm : vms) {
-        //     cloudsim.send(engine.getId(), cloud.getId(), 0.0,
-        //                   WorkflowEvent.VM_LAUNCH, vm);
-        // }
-
-        // // kill VMs before deadline
-        // for(VM vm : vms) {
-        //     double delay = vm.getVmType().getDeprovisioningDelayEstimation()*2;
-        //     cloudsim.send(engine.getId(), cloud.getId(), deadline - delay,
-        //                   WorkflowEvent.VM_TERMINATE, vm);
-        // }
-
-
 
         // Run
         algorithm.simulate();
