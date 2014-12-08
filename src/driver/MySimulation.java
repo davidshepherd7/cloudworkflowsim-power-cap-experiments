@@ -28,8 +28,6 @@ import com.lexicalscope.jewel.cli.ArgumentValidationException;
 import com.lexicalscope.jewel.cli.CliFactory;
 import com.lexicalscope.jewel.cli.HelpRequestedException;
 
-import org.yaml.snakeyaml.Yaml;
-
 import org.cloudbus.cloudsim.Log;
 
 import cws.core.Cloud;
@@ -111,7 +109,7 @@ public final class MySimulation {
             System.exit(0);
         }
 
-        VMType vmType = new VMTypeLoader().determineVMType(args.getVmFile());
+        VMType vmType = (new VMTypeLoader()).determineVMTypeFromFile(args.getVmFile());
 
 
         // Get dags
