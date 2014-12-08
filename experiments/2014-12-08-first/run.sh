@@ -3,7 +3,10 @@
 set -o errexit
 set -o nounset
 
-applications="GENOME" "LIGO" "SIPHT" "MONTAGE" "CYBERSHAKE"
+applications="GENOME LIGO SIPHT MONTAGE CYBERSHAKE"
+powerCapTimes="0.0 100 400"
+powerCapValues="200.001 100.001 400.001"
+
 
 main="$(pwd)"
 out_dir="$(pwd)/output"
@@ -32,6 +35,8 @@ do
          --inputDir 'input/dags' \
          --outputFile "${dir}/out.csv" \
          --vmFile "input/default.vm.yaml" \
+         --powerCapTimes $powerCapTimes \
+         --powerCapValues $powerCapValues \
          --application $application
 
 
