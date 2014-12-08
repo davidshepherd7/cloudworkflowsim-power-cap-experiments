@@ -14,7 +14,12 @@ import java.util.Map;
 import java.util.HashMap;
 import java.util.Set;
 import java.util.HashSet;
-
+import java.util.LinkedHashSet;
+import java.util.LinkedList;
+import static java.util.Arrays.asList;
+import static java.util.Collections.*;
+import java.util.SortedSet;
+import java.util.TreeMap;
 
 
 import org.apache.commons.cli.CommandLine;
@@ -172,7 +177,7 @@ public class MySimulation {
         String inputName = inputdir.getAbsolutePath() + "/" + application;
         Random rand = new Random(System.currentTimeMillis());
         String[] distributionNames =
-            DAGListGenerator.generateDAGListConstant(inputName, 50, 1);
+                DAGListGenerator.generateDAGListConstant(inputName, 50, 1);
 
         // Use trivial storage simulation only
         StorageSimulationParams simulationParams = new StorageSimulationParams();
@@ -181,7 +186,7 @@ public class MySimulation {
 
         // Make the environment
         Environment environment = EnvironmentFactory.createEnvironment
-            (cloudsim, simulationParams, vmType);
+                (cloudsim, simulationParams, vmType);
 
         // Parse the dags
         List<DAG> dags = parseDags(distributionNames, 1.0);
@@ -196,23 +201,26 @@ public class MySimulation {
         // Build our cloud
         Cloud cloud = new Cloud(cloudsim);
 
-        final double powercap = 5;
+        TreeMap<Double, Double> powercap = new TreeMap<>();
+        powercap.put(0.0, 101.0); // 2 vms
+        powercap.put(10.0, 51.0); // 1 vm
+        powercap.put(20.0, 201.0); // 4 vms
 
         Provisioner provisioner = new NullProvisioner();
         Planner planner = new PowerCappedPlanner(powercap,
                 new HeftPlanner());
 
-        StaticHeterogeneousAlgorithm staticAlgo =
-            new StaticHeterogeneousAlgorithm.Builder(dags, planner, cloudsim)
-            .budget(budget)
-            .deadline(deadline)
-            .addInitialVMs(vms)
-            .build();
+        StaticHeterogeneousAlgorithm staticAlgo = 
+                new StaticHeterogeneousAlgorithm.Builder(dags, planner, cloudsim)
+                .budget(budget)
+                .deadline(deadline)
+                .addInitialVMs(vms)
+                .build();
         Algorithm algorithm = staticAlgo;
         Scheduler scheduler = staticAlgo;
 
         WorkflowEngine engine = new WorkflowEngine(provisioner, scheduler,
-                                                   budget, deadline, cloudsim);
+                budget, deadline, cloudsim);
         EnsembleManager manager = new EnsembleManager(engine, cloudsim);
 
         algorithm.setWorkflowEngine(engine);
@@ -251,15 +259,15 @@ public class MySimulation {
     }
 
     private void logWorkflowsDescription(List<DAG> dags, String[] distributionNames,
-                                         CloudSimWrapper cloudsim) {
+            CloudSimWrapper cloudsim) {
         for (int i = 0; i < dags.size(); i++) {
             DAG dag = dags.get(i);
 
             String workflowDescription =
-                String.format("Workflow %s, priority = %d, filename = %s",
-                              dag.getId(),
-                              dags.size() - i,
-                              distributionNames[i]);
+                    String.format("Workflow %s, priority = %d, filename = %s",
+                            dag.getId(),
+                            dags.size() - i,
+                            distributionNames[i]);
 
             cloudsim.log(workflowDescription);
         }
@@ -273,10 +281,10 @@ public class MySimulation {
      * @return Output stream for logs for current simulation.
      */
     private OutputStream getLogOutputStream(double budget, double deadline,
-                                            File outputfile) {
+            File outputfile) {
         String name = String.format("%s.b-%.2f-d-%.2f.log",
-                                    outputfile.getAbsolutePath(),
-                                    budget, deadline);
+                outputfile.getAbsolutePath(),
+                budget, deadline);
         try {
             return new FileOutputStream(new File(name));
         } catch (FileNotFoundException e) {
@@ -295,9 +303,9 @@ public class MySimulation {
             dag.setId(new Integer(workflow_id).toString());
 
             System.out.println(String.format("Workflow %d, priority = %d, filename = %s",
-                                             workflow_id,
-                                             distributionNames.length - workflow_id,
-                                             name));
+                            workflow_id,
+                            distributionNames.length - workflow_id,
+                            name));
 
             workflow_id++;
             dags.add(dag);
