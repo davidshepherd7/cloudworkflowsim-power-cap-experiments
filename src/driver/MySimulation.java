@@ -26,6 +26,8 @@ import java.util.TreeMap;
 import com.lexicalscope.jewel.cli.Option;
 import com.lexicalscope.jewel.cli.ArgumentValidationException;
 import com.lexicalscope.jewel.cli.CliFactory;
+import com.lexicalscope.jewel.cli.HelpRequestedException;
+
 import org.yaml.snakeyaml.Yaml;
 
 import org.cloudbus.cloudsim.Log;
@@ -89,13 +91,22 @@ public final class MySimulation {
         @Option String getOutputFile();
 
         @Option String getVmFile();
+
+        @Option(helpRequest = true) boolean getHelp();
     }
 
     public static void main(String[] commandLine)
             throws ArgumentValidationException, FileNotFoundException {
 
         // Read arguments
-        final Args args = CliFactory.parseArguments(Args.class, commandLine);
+        Args args = null;
+        try {
+            args = CliFactory.parseArguments(Args.class, commandLine);
+        } catch (HelpRequestedException e) {
+            System.out.println(e);
+            System.exit(0);
+        }
+
         VMType vmType = new VMTypeLoader().determineVMType(args.getVmFile());
 
         // Run
