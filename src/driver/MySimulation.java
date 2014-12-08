@@ -72,6 +72,8 @@ import cws.core.provisioner.CloudAwareProvisioner;
 import cws.core.provisioner.SimpleUtilizationBasedProvisioner;
 
 import cws.core.storage.StorageManagerStatistics;
+import cws.core.storage.StorageManagerFactory;
+import cws.core.storage.StorageManager;
 import cws.core.simulation.StorageSimulationParams;
 import cws.core.simulation.StorageType;
 import cws.core.simulation.StorageCacheType;
@@ -92,6 +94,8 @@ public final class MySimulation {
 
         @Option String getVmFile();
 
+        @Option String getApplication();
+
         @Option(helpRequest = true) boolean getHelp();
     }
 
@@ -109,56 +113,62 @@ public final class MySimulation {
 
         VMType vmType = new VMTypeLoader().determineVMType(args.getVmFile());
 
-        // Run
-        // MySimulation testRun = new MySimulation();
-        runTest(args.getInputDir(), args.getOutputFile(), vmType);
-    }
 
-    public static void runTest(String inputDir, String OutputFile, VMType vmType) {
-
-        // Parse arguments
-        String application = "MONTAGE"; // GENOME LIGO SIPHT MONTAGE CYBERSHAKE
-        File inputdir = new File(inputDir);
-        File outputfile = new File(OutputFile);
-        double budget = 100000;
-        double deadline = 100000;
-
-        // Make CloudSim object
-        OutputStream logStream = getLogOutputStream(budget, deadline, outputfile);
-        CloudSimWrapper cloudsim = new CloudSimWrapper(logStream);
-        cloudsim.init();
-        cloudsim.setLogsEnabled(true);
-
-        // We do not need Cloudsim's logs. We have our own.
-        Log.disable();
+        // Get dags
+        // ============================================================
+        File inputdir = new File(args.getInputDir());
+        String inputName = inputdir.getAbsolutePath() + "/" + args.getApplication();
 
         // Determine the distribution
-        String inputName = inputdir.getAbsolutePath() + "/" + application;
         Random rand = new Random(System.currentTimeMillis());
         String[] distributionNames =
                 DAGListGenerator.generateDAGListConstant(inputName, 50, 1);
 
+        // Parse the dags
+        List<DAG> dags = parseDags(distributionNames, 1.0);
+
+
+        // Run
+        // ============================================================
+        runTest(dags, distributionNames, args.getOutputFile(), vmType);
+    }
+
+    public static void runTest(List<DAG> dags,
+            String[] distributionNames,
+            String OutputFile,
+            VMType vmType) {
+
+        // For my purposes I'm not interested in (monetary) budget or
+        // a deadline.
+        double budget = 100000;
+        double deadline = 100000;
+
+        // Make CloudSim object
+        File outputfile = new File(OutputFile);
+        OutputStream logStream = getLogOutputStream(budget, deadline, outputfile);
+        CloudSimWrapper cloudsim = new CloudSimWrapper(logStream);
+        cloudsim.init();
+        cloudsim.setLogsEnabled(true);
+        Log.disable(); // We do not need Cloudsim's logs. We have our own.
+
+        // Create storage manager (and register it with cloudsim somehow).
         // Use trivial storage simulation only
         StorageSimulationParams simulationParams = new StorageSimulationParams();
         simulationParams.setStorageCacheType(StorageCacheType.VOID);
         simulationParams.setStorageType(StorageType.VOID);
-
-        // Make the environment
-        Environment environment = EnvironmentFactory.createEnvironment
-                (cloudsim, simulationParams, vmType);
-
-        // Parse the dags
-        List<DAG> dags = parseDags(distributionNames, 1.0);
+        StorageManagerFactory.createStorage(simulationParams, cloudsim);
 
         // Initial logs
         cloudsim.log("budget = " + budget);
         cloudsim.log("deadline = " + deadline);
         logWorkflowsDescription(dags, distributionNames, cloudsim);
 
-        List<VMType> vms = Arrays.asList(vmType);
-
         // Build our cloud
         Cloud cloud = new Cloud(cloudsim);
+
+
+        // Build and plan the algorithm
+        // ============================================================
 
         PiecewiseConstantFunction powercap = new PiecewiseConstantFunction();
         powercap.addJump(0.0, 101.0); // 2 vms
@@ -166,14 +176,13 @@ public final class MySimulation {
         powercap.addJump(20.0, 201.0); // 4 vms
 
         Provisioner provisioner = new NullProvisioner();
-        Planner planner = new PowerCappedPlanner(powercap,
-                new HeftPlanner());
+        Planner planner = new PowerCappedPlanner(powercap, new HeftPlanner());
 
         StaticHeterogeneousAlgorithm staticAlgo =
                 new StaticHeterogeneousAlgorithm.Builder(dags, planner, cloudsim)
                 .budget(budget)
                 .deadline(deadline)
-                .addInitialVMs(vms)
+                .addInitialVMs(asList(vmType))
                 .build();
         Algorithm algorithm = staticAlgo;
         Scheduler scheduler = staticAlgo;
@@ -192,15 +201,17 @@ public final class MySimulation {
 
         // Generate stats about how well the job did
         // ============================================================
-
         AlgorithmStatistics algorithmStatistics = algorithm.getAlgorithmStatistics();
         double planningTime = algorithm.getPlanningnWallTime() / 1.0e9;
         double simulationTime = cloudsim.getSimulationWallTime() / 1.0e9;
-        StorageManagerStatistics stats = environment.getStorageManagerStatistics();
 
         System.out.println("Power usage was: "
                 + algorithmStatistics.getPowerUsage().toString());
+
+        System.out.println("Power cap was: "
+                + powercap.toString());
     }
+
 
     private static void logWorkflowsDescription(List<DAG> dags,
             String[] distributionNames,
