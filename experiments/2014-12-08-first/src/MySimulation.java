@@ -92,6 +92,9 @@ public final class MySimulation {
 
         @Option String getApplication();
 
+        @Option(defaultValue="100.0001") List<Double> getPowerCapValues();
+        @Option(defaultValue="0.0") List<Double> getPowerCapTimes();
+
         @Option(helpRequest = true) boolean getHelp();
     }
 
@@ -124,15 +127,28 @@ public final class MySimulation {
         List<DAG> dags = parseDags(distributionNames, 1.0);
 
 
+        // Make a power cap
+        // ============================================================
+        if (args.getPowerCapTimes().size() != args.getPowerCapValues().size()) {
+            throw new RuntimeException(
+                    "Power cap times and values must be the same length");
+        }
+        PiecewiseConstantFunction powerCap = new PiecewiseConstantFunction();
+        for (int i=0; i< args.getPowerCapTimes().size(); i++) {
+            powerCap.addJump(args.getPowerCapTimes().get(i),
+                    args.getPowerCapValues().get(i));
+        }
+
         // Run
         // ============================================================
-        runTest(dags, distributionNames, args.getOutputFile(), vmType);
+        runTest(dags, distributionNames, args.getOutputFile(), vmType, powerCap);
     }
 
     public static void runTest(List<DAG> dags,
             String[] distributionNames,
             String OutputFile,
-            VMType vmType) {
+            VMType vmType,
+            PiecewiseConstantFunction powerCap) {
 
         // For my purposes I'm not interested in (monetary) budget or
         // a deadline.
@@ -166,13 +182,8 @@ public final class MySimulation {
         // Build and plan the algorithm
         // ============================================================
 
-        PiecewiseConstantFunction powercap = new PiecewiseConstantFunction();
-        powercap.addJump(0.0, 101.0); // 2 vms
-        powercap.addJump(10.0, 51.0); // 1 vm
-        powercap.addJump(20.0, 201.0); // 4 vms
-
         Provisioner provisioner = new NullProvisioner();
-        Planner planner = new PowerCappedPlanner(powercap, new HeftPlanner());
+        Planner planner = new PowerCappedPlanner(powerCap, new HeftPlanner());
 
         StaticHeterogeneousAlgorithm staticAlgo =
                 new StaticHeterogeneousAlgorithm.Builder(dags, planner, cloudsim)
@@ -205,7 +216,7 @@ public final class MySimulation {
                 + algorithmStatistics.getPowerUsage().toString());
 
         System.out.println("Power cap was: "
-                + powercap.toString());
+                + powerCap.toString());
     }
 
 
