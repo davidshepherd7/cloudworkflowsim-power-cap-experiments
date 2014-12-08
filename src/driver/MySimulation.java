@@ -86,22 +86,8 @@ import cws.core.simulation.StorageCacheType;
 
 public class MySimulation {
 
-    /**
-     * Loads VMType from file and/or from CLI args
-     */
-    private final VMTypeLoader vmTypeLoader;
-
-    public MySimulation(VMTypeLoader vmTypeLoader) {
-        this.vmTypeLoader = vmTypeLoader;
-    }
-
     public static Options buildOptions() {
         Options options = new Options();
-
-        Option application = new Option("app", "application", true, "(required) Application name");
-        application.setRequired(true);
-        application.setArgName("APP");
-        options.addOption(application);
 
         Option inputdir = new Option("id", "input-dir", true, "(required) Input dir");
         inputdir.setRequired(true);
@@ -113,14 +99,6 @@ public class MySimulation {
         outputfile.setArgName("FILE");
         options.addOption(outputfile);
 
-        Option deadline = new Option("d", "deadline", true, "Optional deadline, which overrides max and min deadlines");
-        deadline.setArgName("DEADLINE");
-        options.addOption(deadline);
-
-        Option budget = new Option("b", "budget", true, "Optional budget, which overrides max and min budgets");
-        budget.setArgName("BUDGET");
-        options.addOption(budget);
-
         VMFactory.buildCliOptions(options);
 
         VMTypeLoader.buildCliOptions(options);
@@ -128,42 +106,32 @@ public class MySimulation {
         return options;
     }
 
-    private static void printUsage(Options options, String reason) {
-        HelpFormatter formatter = new HelpFormatter();
-        formatter.setWidth(120);
-        formatter.printHelp(MySimulation.class.getName(), "", options, reason);
-        System.exit(1);
-    }
-
-    public static void main(String[] args) {
+    public static void main(String[] args) throws ParseException {
         Options options = buildOptions();
         CommandLine cmd = null;
-        try {
-            CommandLineParser parser = new PosixParser();
-            cmd = parser.parse(options, args);
-        } catch (ParseException exp) {
-            printUsage(options, exp.getMessage());
-        }
-        MySimulation testRun = new MySimulation(new VMTypeLoader());
-        try {
-            testRun.runTest(cmd);
-        } catch (IllegalCWSArgumentException e) {
-            printUsage(options, e.getMessage());
-        }
-    }
 
-    public void runTest(CommandLine args) {
-
-        // Parse arguments
-        String application = args.getOptionValue("application");
-        File inputdir = new File(args.getOptionValue("input-dir"));
-        File outputfile = new File(args.getOptionValue("output-file"));
-        double budget = Double.valueOf(args.getOptionValue("budget", "100000"));
-        double deadline = Double.valueOf(args.getOptionValue("deadline", "100000"));
+        CommandLineParser parser = new PosixParser();
+        cmd = parser.parse(options, args);
+        String inputDir = cmd.getOptionValue("input-dir");
+        String outputFile = cmd.getOptionValue("output-file");
 
         // Make VMType and VMFactory objects
-        VMType vmType = vmTypeLoader.determineVMType(args);
-        VMFactory.readCliOptions(args, System.currentTimeMillis());
+        VMTypeLoader vmTypeLoader = new VMTypeLoader();
+        VMType vmType = vmTypeLoader.determineVMType(cmd);
+        VMFactory.readCliOptions(cmd, System.currentTimeMillis());
+
+        MySimulation testRun = new MySimulation();
+        testRun.runTest(inputDir, outputFile, vmType);
+    }
+
+    public void runTest(String inputDir, String OutputFile, VMType vmType) {
+
+        // Parse arguments
+        String application = "MONTAGE"; // GENOME LIGO SIPHT MONTAGE CYBERSHAKE
+        File inputdir = new File(inputDir);
+        File outputfile = new File(OutputFile);
+        double budget = 100000;
+        double deadline = 100000;
 
         // Make CloudSim object
         OutputStream logStream = getLogOutputStream(budget, deadline, outputfile);
