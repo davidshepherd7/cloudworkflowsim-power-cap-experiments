@@ -5,6 +5,8 @@ import java.io.OutputStream;
 import java.io.PrintStream;
 import java.io.FileInputStream;
 import java.io.InputStream;
+import java.io.PrintWriter;
+import java.io.UnsupportedEncodingException;
 
 import java.util.Arrays;
 import java.util.ArrayList;
@@ -14,6 +16,7 @@ import java.util.Map;
 import java.util.HashMap;
 import java.util.Set;
 import java.util.HashSet;
+import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import static java.util.Arrays.asList;
@@ -118,8 +121,9 @@ public final class MySimulation {
         File inputdir = new File(args.getInputDir());
         String inputName = inputdir.getAbsolutePath() + "/" + args.getApplication();
 
-        // Determine the distribution
-        Random rand = new Random(System.currentTimeMillis());
+        // Determine the list of DAG sizes to use. Since we are not really
+        // interested in ensembles of workflows yet we will always use
+        // `generateDAGListConstant`, with 1 DAG.
         String[] distributionNames =
                 DAGListGenerator.generateDAGListConstant(inputName, 50, 1);
 
@@ -133,7 +137,7 @@ public final class MySimulation {
             throw new RuntimeException(
                     "Power cap times and values must be the same length");
         }
-        PiecewiseConstantFunction powerCap = new PiecewiseConstantFunction();
+        PiecewiseConstantFunction powerCap = new PiecewiseConstantFunction(0.0);
         for (int i=0; i< args.getPowerCapTimes().size(); i++) {
             powerCap.addJump(args.getPowerCapTimes().get(i),
                     args.getPowerCapValues().get(i));
@@ -212,11 +216,34 @@ public final class MySimulation {
         double planningTime = algorithm.getPlanningnWallTime() / 1.0e9;
         double simulationTime = cloudsim.getSimulationWallTime() / 1.0e9;
 
-        System.out.println("Power usage was: "
-                + algorithmStatistics.getPowerUsage().toString());
 
-        System.out.println("Power cap was: "
-                + powerCap.toString());
+        // Log power usage
+        // ============================================================
+        PiecewiseConstantFunction powerUsed =
+                algorithmStatistics.getPowerUsage();
+        PiecewiseConstantFunction powerGap
+                = powerCap.minus(algorithmStatistics.getPowerUsage());
+
+        System.out.println("Power usage was: " + powerUsed.toString());
+        System.out.println("Power cap was: " + powerCap.toString());
+        System.out.println("Power gap was: " + powerGap);
+
+        String powerLogName = String.format("%s.power-log",
+                outputfile.getAbsolutePath());
+        PrintWriter powerLog = null;
+        try {
+            powerLog = new PrintWriter(powerLogName, "UTF-8");
+            // powerLog.print(pythonFormatPFunc("power gap", powerGap));
+            powerLog.print(pythonFormatPFunc("power cap", powerCap));
+            powerLog.print(pythonFormatPFunc("power used", powerUsed));
+        } catch (FileNotFoundException e) {
+            throw new RuntimeException(e);
+        } catch (UnsupportedEncodingException e) {
+            throw new RuntimeException(e);
+        } finally {
+            powerLog.close();
+        }
+
     }
 
 
@@ -236,6 +263,21 @@ public final class MySimulation {
         }
     }
 
+    private static <T,U> String pythonFormatMap(Collection<Map.Entry<T,U>> map) {
+        String a = "{";
+        for (Map.Entry<T,U> e : map) {
+            a += e.getKey().toString() + ":" + e.getValue().toString() + ", ";
+        }
+        a += "}";
+        return a;
+    }
+
+    private static String pythonFormatPFunc(String label, PiecewiseConstantFunction f) {
+        String mapAsString = pythonFormatMap(f.jumps());
+        return String.format("('%s', %f, %s)\n",
+                label, f.getInitialValue(), mapAsString);
+    }
+
     /**
      * Returns output stream for logs for current simulation.
      * @param budget The simulation's budget.
@@ -245,7 +287,7 @@ public final class MySimulation {
      */
     private static OutputStream getLogOutputStream(double budget, double deadline,
             File outputfile) {
-        String name = String.format("%s.b-%.2f-d-%.2f.log",
+        String name = String.format("%s.log",
                 outputfile.getAbsolutePath(),
                 budget, deadline);
         try {

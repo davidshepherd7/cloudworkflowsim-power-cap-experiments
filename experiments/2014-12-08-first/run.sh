@@ -3,14 +3,14 @@
 set -o errexit
 set -o nounset
 
-applications="GENOME LIGO SIPHT MONTAGE CYBERSHAKE"
-powerCapTimes="0.0 100 400"
+# applications="GENOME LIGO SIPHT MONTAGE CYBERSHAKE"
+applications="GENOME"
+powerCapTimes="0.0 10000 40000"
 powerCapValues="200.001 100.001 400.001"
 
 
 main="$(pwd)"
 out_dir="$(pwd)/output"
-out_base="${out_dir}/simulation_out.csv"
 root="../.."
 
 # Create dirs
@@ -33,7 +33,7 @@ do
     mkdir -p ${dir}
     java -cp "${root}/lib/*:./bin" MySimulation \
          --inputDir 'input/dags' \
-         --outputFile "${dir}/out.csv" \
+         --outputFile "${dir}/out" \
          --vmFile "input/default.vm.yaml" \
          --powerCapTimes $powerCapTimes \
          --powerCapValues $powerCapValues \
@@ -56,3 +56,5 @@ do
     find "$dir" -name '*.log.parsed' | parallel -n1 ruby plot_gantt.rb workflow {} {}.workflow
 
 done
+
+cat $out_dir/*/*power-log*
