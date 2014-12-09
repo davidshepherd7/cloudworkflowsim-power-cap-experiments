@@ -12,5 +12,5 @@ provisioningDelay:
 
 deprovisioningDelay:
     distribution: constant
-    value: 10.0
+    value: 0.0
 
