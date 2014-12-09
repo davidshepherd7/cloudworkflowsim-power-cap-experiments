@@ -12,33 +12,70 @@ from ast import literal_eval
 import scipy as sp
 import matplotlib.pyplot as plt
 
-def main():
 
+def main(): 
+    """Plot list of piecewise constant functions from a file. Format is:
+
+        ( label, initial_value, dict_of_jumps ) 
+    """
+
+    # Parse arguments
+    parser = argparse.ArgumentParser(description=main.__doc__,
+                                     formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument('power_log_file')
+    args = parser.parse_args()
+
+    # do it
+    plot_power(parse_power_log(args.power_log_file))
+
+    return 0
+
+
+class Power(object):
+    pass
+
+
+def parse_power_log(filename):
+    
     # Parse file
-    with open("output/GENOME/out.power-log", 'r') as power_file:
+    with open(filename, 'r') as power_file:
         parsed = [literal_eval(l) for l in power_file.readlines()]
+        
+    # Last time of all jumps  
+    maxtime = max(it.chain(*[p[2].keys() for p in parsed]))
 
-    times = [p[2].keys() for p in parsed]
-    endtime = max(it.chain(*times))
-    print(endtime)
-
+    # Convert to list of Power struct
+    final = [] 
     for func in parsed:
-        # Extract jumps of first power function
-        d = func[2]
-        pairs = sorted(zip(d.keys(), d.values()), key=lambda p: p[0]) 
-        times, values = zip(*pairs)
+        label, start, jump_dict = func
 
-        # Extend jump lists to include a final value
-        times = list(times) + [endtime]
-        values = list(values) + [values[-1]]
+        p = Power()
+        p.label = label
 
-        # And plot
-        plt.step(times, values, label=func[0], where="post")
+        # Extract jumps of first power function, store as two lists
+        pairs = sorted(zip(jump_dict.keys(), jump_dict.values()),
+                       key=lambda pair: pair[0])
+
+        # Add final time for nicer plotting
+        pairs.append((maxtime, pairs[-1][1]))
+
+        # Store
+        p.jump_times, p.jump_values = zip(*pairs)
+        final.append(p)
+
+    return final
+
+
+def plot_power(power_list):
+
+    for power in power_list:
+        plt.step(power.jump_times, power.jump_values,
+                 label=power.label, where="post")
 
     plt.legend()
     plt.show()
-    
-    return 0
+
+    return
 
 
 if __name__ == "__main__":
