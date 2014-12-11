@@ -64,7 +64,6 @@ import cws.core.exception.IllegalCWSArgumentException;
 import cws.core.VMFactory;
 
 import cws.core.Scheduler;
-import cws.core.scheduler.DAGSchedulerFCFS;
 import cws.core.Provisioner;
 import cws.core.provisioner.NullProvisioner;
 import cws.core.provisioner.CloudAwareProvisioner;
