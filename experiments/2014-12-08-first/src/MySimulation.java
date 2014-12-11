@@ -138,8 +138,8 @@ public final class MySimulation {
 
         // For my purposes I'm not interested in (monetary) budget or
         // a deadline.
-        double budget = 100000;
-        double deadline = 100000;
+        double budget = 1e50;
+        double deadline = 1e50;
 
         // Get the dag
         DAG dag = parseDag(dagFileName);
