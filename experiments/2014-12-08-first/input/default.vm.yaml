@@ -14,3 +14,4 @@ deprovisioningDelay:
     distribution: constant
     value: 0.0
 
+powerConsumption: 50
