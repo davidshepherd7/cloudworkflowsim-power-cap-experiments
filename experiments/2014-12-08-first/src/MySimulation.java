@@ -87,13 +87,11 @@ public final class MySimulation {
     }
 
     public static interface Args {
-        @Option String getInputDir();
-
         @Option String getOutputFile();
 
         @Option String getVmFile();
 
-        @Option String getApplication();
+        @Option String getDagFileName();
 
         @Option(defaultValue="100.0001") List<Double> getPowerCapValues();
         @Option(defaultValue="0.0") List<Double> getPowerCapTimes();
@@ -116,21 +114,6 @@ public final class MySimulation {
         VMType vmType = (new VMTypeLoader()).determineVMTypeFromFile(args.getVmFile());
 
 
-        // Get dags
-        // ============================================================
-        File inputdir = new File(args.getInputDir());
-        String inputName = inputdir.getAbsolutePath() + "/" + args.getApplication();
-
-        // Determine the list of DAG sizes to use. Since we are not really
-        // interested in ensembles of workflows yet we will always use
-        // `generateDAGListConstant`, with 1 DAG.
-        String[] distributionNames =
-                DAGListGenerator.generateDAGListConstant(inputName, 50, 1);
-
-        // Parse the dags
-        List<DAG> dags = parseDags(distributionNames, 1.0);
-
-
         // Make a power cap
         // ============================================================
         if (args.getPowerCapTimes().size() != args.getPowerCapValues().size()) {
@@ -145,12 +128,11 @@ public final class MySimulation {
 
         // Run
         // ============================================================
-        runTest(dags, distributionNames, args.getOutputFile(), vmType, powerCap);
+        runTest(args.getDagFileName(), args.getOutputFile(), vmType, powerCap);
     }
 
-    public static void runTest(List<DAG> dags,
-            String[] distributionNames,
-            String OutputFile,
+    public static void runTest(String dagFileName,
+            String outputFileName,
             VMType vmType,
             PiecewiseConstantFunction powerCap) {
 
@@ -159,9 +141,11 @@ public final class MySimulation {
         double budget = 100000;
         double deadline = 100000;
 
+        // Get the dag
+        DAG dag = parseDag(dagFileName);
+
         // Make CloudSim object
-        File outputfile = new File(OutputFile);
-        OutputStream logStream = getLogOutputStream(budget, deadline, outputfile);
+        OutputStream logStream = getLogOutputStream(outputFileName);
         CloudSimWrapper cloudsim = new CloudSimWrapper(logStream);
         cloudsim.init();
         cloudsim.setLogsEnabled(true);
@@ -177,7 +161,7 @@ public final class MySimulation {
         // Initial logs
         cloudsim.log("budget = " + budget);
         cloudsim.log("deadline = " + deadline);
-        logWorkflowsDescription(dags, distributionNames, cloudsim);
+        logWorkflowsDescription(dag, dagFileName, cloudsim);
 
         // Build our cloud
         Cloud cloud = new Cloud(cloudsim);
@@ -190,7 +174,7 @@ public final class MySimulation {
         Planner planner = new PowerCappedPlanner(powerCap, new HeftPlanner());
 
         StaticHeterogeneousAlgorithm staticAlgo =
-                new StaticHeterogeneousAlgorithm.Builder(dags, planner, cloudsim)
+                new StaticHeterogeneousAlgorithm.Builder(asList(dag), planner, cloudsim)
                 .budget(budget)
                 .deadline(deadline)
                 .addInitialVMs(asList(vmType))
@@ -228,8 +212,7 @@ public final class MySimulation {
         System.out.println("Power cap was: " + powerCap.toString());
         System.out.println("Power gap was: " + powerGap);
 
-        String powerLogName = String.format("%s.power-log",
-                outputfile.getAbsolutePath());
+        String powerLogName = String.format("%s.power-log", outputFileName);
         PrintWriter powerLog = null;
         try {
             powerLog = new PrintWriter(powerLogName, "UTF-8");
@@ -247,20 +230,16 @@ public final class MySimulation {
     }
 
 
-    private static void logWorkflowsDescription(List<DAG> dags,
-            String[] distributionNames,
+    private static void logWorkflowsDescription(DAG dag, String dagFileName,
             CloudSimWrapper cloudsim) {
-        for (int i = 0; i < dags.size(); i++) {
-            DAG dag = dags.get(i);
 
-            String workflowDescription =
-                    String.format("Workflow %s, priority = %d, filename = %s",
-                            dag.getId(),
-                            dags.size() - i,
-                            distributionNames[i]);
+        String workflowDescription =
+                String.format("Workflow %s, priority = %d, filename = %s",
+                        dag.getId(),
+                        0,
+                        dagFileName);
 
-            cloudsim.log(workflowDescription);
-        }
+        cloudsim.log(workflowDescription);
     }
 
     private static <T,U> String pythonFormatMap(Collection<Map.Entry<T,U>> map) {
@@ -280,49 +259,23 @@ public final class MySimulation {
 
     /**
      * Returns output stream for logs for current simulation.
-     * @param budget The simulation's budget.
-     * @param deadline The simulation's deadline.
-     * @param outputfile The simulation's main output file.
-     * @return Output stream for logs for current simulation.
      */
-    private static OutputStream getLogOutputStream(double budget, double deadline,
-            File outputfile) {
-        String name = String.format("%s.log",
-                outputfile.getAbsolutePath(),
-                budget, deadline);
+    private static OutputStream getLogOutputStream(String outputFileName) {
         try {
-            return new FileOutputStream(new File(name));
+            return new FileOutputStream(new File(outputFileName));
         } catch (FileNotFoundException e) {
             throw new RuntimeException(e);
         }
     }
 
     // Load dags from files
-    private static List<DAG> parseDags(String[] distributionNames, double scalingFactor)
-    {
-        List<DAG> dags = new ArrayList<DAG>();
-        int workflow_id = 0;
+    private static DAG parseDag(String dagFileName) {
+        DAG dag = null;
+        File dagFile = new File(dagFileName);
+        dag = DAGParser.parseDAG(dagFile);
 
-        for (String name : distributionNames) {
-            DAG dag = DAGParser.parseDAG(new File(name));
-            dag.setId(new Integer(workflow_id).toString());
-
-            System.out.println(String.format("Workflow %d, priority = %d, filename = %s",
-                            workflow_id,
-                            distributionNames.length - workflow_id,
-                            name));
-
-            workflow_id++;
-            dags.add(dag);
-
-            if (scalingFactor > 1.0) {
-                for (String tid : dag.getTasks()) {
-                    Task t = dag.getTaskById(tid);
-                    t.scaleSize(scalingFactor);
-                }
-            }
-        }
-        return dags;
+        dag.setId("0");
+        return dag;
     }
 
 }

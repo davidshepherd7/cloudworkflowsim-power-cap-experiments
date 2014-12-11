@@ -3,14 +3,19 @@
 set -o errexit
 set -o nounset
 
-# applications="GENOME LIGO SIPHT MONTAGE CYBERSHAKE"
-applications="GENOME"
+applications="GENOME LIGO SIPHT MONTAGE CYBERSHAKE"
+# applications="GENOME"
 powerCapTimes="0.0 10000 40000"
 powerCapValues="200.001 100.001 400.001"
 
+variations="0 1 2 3 4 5 6 7 8 9"
+# variations="0"
+sizes="50 100 200 300 400 500 600 700 800 900 1000"
+# sizes="50"
 
-main="$(pwd)"
-out_dir="$(pwd)/output"
+
+main="$(readlink -f $(pwd))"
+out_dir="${main}/output"
 root="../.."
 
 # Create dirs
@@ -25,36 +30,41 @@ rm -r bin/*
 javac -cp "${root}/lib/*" -d bin/ src/*.java
 
 # run
-for application in $applications
-do
-    cd $main
+for size in $sizes; do
+    for i in $variations; do
+        for application in $applications
+        do
+            cd $main
+            
+            dagfile_base="${application}.n.${size}.${i}"
+            dir="${out_dir}/${dagfile_base}"
+            out="${dir}/out.log"
 
-    dir="${out_dir}/${application}"
-    mkdir -p ${dir}
-    java -cp "${root}/lib/*:./bin" MySimulation \
-         --inputDir 'input/dags' \
-         --outputFile "${dir}/out" \
-         --vmFile "input/default.vm.yaml" \
-         --powerCapTimes $powerCapTimes \
-         --powerCapValues $powerCapValues \
-         --application $application
+            mkdir -p ${dir}
+            java -cp "${root}/lib/*:./bin" MySimulation \
+                 --dagFileName "${main}/input/dags/${dagfile_base}.dag" \
+                 --outputFile "$out" \
+                 --vmFile "input/default.vm.yaml" \
+                 --powerCapTimes $powerCapTimes \
+                 --powerCapValues $powerCapValues
 
 
-    # parse
-    cd ~/workflows/cloudworkflowsimulator/scripts
-    find "$dir" -name '*.log' | parallel -n1 python -m log_parser.parse_experiment_log "{}" "{}.parsed"
+            # parse
+            cd ~/workflows/cloudworkflowsimulator/scripts
+            python -m log_parser.parse_experiment_log "${out}" "${out}.parsed"
 
-    # validate
-    cd ~/workflows/cloudworkflowsimulator/scripts
-    find "$dir" -name '*.log.parsed' \
-        | parallel -n1 python -m validation.experiment_validator "{}" 2>&1 \
-        | tee "${dir}/validation_out"
+            echo "${out}" "{out}.parsed"
 
-    # plot
-    cd ~/workflows/cloudworkflowsimulator/scripts/visualisation
-    find "$dir" -name '*.log.parsed' | parallel -n1 ruby plot_gantt.rb results {} {}.results
-    find "$dir" -name '*.log.parsed' | parallel -n1 ruby plot_gantt.rb workflow {} {}.workflow
+            # validate
+            cd ~/workflows/cloudworkflowsimulator/scripts
+            python -m validation.experiment_validator "${out}.parsed" 2>&1 \
+                | tee "${dir}/validation_out"
 
+            # plot
+            cd ~/workflows/cloudworkflowsimulator/scripts/visualisation
+            ruby plot_gantt.rb results ${out}.parsed ${out}.results
+            ruby plot_gantt.rb workflow ${out}.parsed ${out}.workflow
+
+        done
+    done
 done
-
-cat $out_dir/*/*power-log*
