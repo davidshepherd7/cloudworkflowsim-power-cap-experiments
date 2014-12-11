@@ -147,9 +147,9 @@ public final class MySimulation {
         // Make CloudSim object
         OutputStream logStream = getLogOutputStream(outputFileName);
         CloudSimWrapper cloudsim = new CloudSimWrapper(logStream);
-        cloudsim.init();
         cloudsim.setLogsEnabled(true);
         Log.disable(); // We do not need Cloudsim's logs. We have our own.
+        cloudsim.init();
 
         // Create storage manager (and register it with cloudsim somehow).
         // Use trivial storage simulation only
@@ -207,10 +207,6 @@ public final class MySimulation {
                 algorithmStatistics.getPowerUsage();
         PiecewiseConstantFunction powerGap
                 = powerCap.minus(algorithmStatistics.getPowerUsage());
-
-        System.out.println("Power usage was: " + powerUsed.toString());
-        System.out.println("Power cap was: " + powerCap.toString());
-        System.out.println("Power gap was: " + powerGap);
 
         String powerLogName = String.format("%s.power-log", outputFileName);
         PrintWriter powerLog = null;

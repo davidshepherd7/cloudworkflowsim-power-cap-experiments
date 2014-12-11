@@ -35,8 +35,10 @@ for size in $sizes; do
         for application in $applications
         do
             cd $main
-            
+
             dagfile_base="${application}.n.${size}.${i}"
+            echo "Running dag $dagfile_base"
+
             dir="${out_dir}/${dagfile_base}"
             out="${dir}/out.log"
 
@@ -52,8 +54,6 @@ for size in $sizes; do
             # parse
             cd ~/workflows/cloudworkflowsimulator/scripts
             python -m log_parser.parse_experiment_log "${out}" "${out}.parsed"
-
-            echo "${out}" "{out}.parsed"
 
             # validate
             cd ~/workflows/cloudworkflowsimulator/scripts
