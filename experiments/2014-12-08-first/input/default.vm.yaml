@@ -15,3 +15,7 @@ deprovisioningDelay:
     value: 0.0
 
 powerConsumption: 50
+
+runtimeDistribution:
+  distribution: uniform
+  variance: 0.1
