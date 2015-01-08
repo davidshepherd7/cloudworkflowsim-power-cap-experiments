@@ -76,8 +76,9 @@ def parse_power_log(filename):
 def plot_power(power_list):
 
     for power in power_list:
-        plt.step(power.jump_times, power.jump_values,
-                 label=power.label, where="post")
+        if all([p < 1e90 for p in power.jump_values]):
+            plt.step(power.jump_times, power.jump_values,
+                     label=power.label, where="post")
 
     plt.legend()
 
