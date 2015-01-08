@@ -116,6 +116,8 @@ public final class MySimulation {
         // Run with an "infinite" power cap
         // ============================================================
         {
+            // ??ds this is pretty slow: has to create a very large number
+            // of VMs in the plan...
             PiecewiseConstantFunction powerCap =
                     new PiecewiseConstantFunction(1e100);
 
