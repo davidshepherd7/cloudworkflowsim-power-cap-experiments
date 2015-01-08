@@ -3,16 +3,18 @@
 set -o errexit
 set -o nounset
 
-applications="GENOME LIGO SIPHT MONTAGE CYBERSHAKE"
-# applications="GENOME"
+if [ $# -gt 0 ]; then
+    applications="GENOME"
+    variations="0"
+    sizes="50"
+else
+    applications="GENOME LIGO SIPHT MONTAGE CYBERSHAKE"
+    variations="0 1 2 3 4 5 6 7 8 9"
+    sizes="50 100 200 300 400 500 600 700 800 900 1000"
+fi
+
 powerCapTimes="0.0 10000 40000"
 powerCapValues="200.001 100.001 400.001"
-
-variations="0 1 2 3 4 5 6 7 8 9"
-# variations="0"
-sizes="50 100 200 300 400 500 600 700 800 900 1000"
-# sizes="50"
-
 
 main="$(readlink -f $(pwd))"
 out_dir_root="${main}/output"
