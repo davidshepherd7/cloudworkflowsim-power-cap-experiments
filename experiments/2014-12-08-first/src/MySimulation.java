@@ -17,6 +17,7 @@ import java.util.HashMap;
 import java.util.Set;
 import java.util.HashSet;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import static java.util.Arrays.asList;
@@ -80,6 +81,11 @@ import cws.core.simulation.StorageCacheType;
 
 public final class MySimulation {
 
+    public static class RunStats {
+        double maxPowerUsage;
+        double totalTime;
+    }
+
     // Non-instantiable
     private MySimulation() {
         throw new AssertionError();
@@ -115,6 +121,7 @@ public final class MySimulation {
 
         // Run with an "infinite" power cap
         // ============================================================
+        RunStats maxPowerRun = null;
         {
             PiecewiseConstantFunction powerCap =
                     new PiecewiseConstantFunction(0.0);
@@ -124,32 +131,41 @@ public final class MySimulation {
             (new File(dir)).mkdir();
 
             Planner planner = new HeftPlanner(asList(vmType));
-            runTest(args.getDagFileName(), dir, vmType, powerCap, planner);
+            maxPowerRun = runTest(args.getDagFileName(), dir, vmType, powerCap, planner);
         }
 
-        // Run with a power cap from arguments
+        // Run with power caps based on maxPowerUsage
         // ============================================================
+        List<Double> powerConstraints = asList(0.2, 0.5, 0.7);
+        for (double powerConstraint : powerConstraints)
         {
-            if (args.getPowerCapTimes().size() != args.getPowerCapValues().size()) {
-                throw new RuntimeException(
-                        "Power cap times and values must be the same length");
-            }
-            PiecewiseConstantFunction powerCap = new PiecewiseConstantFunction(0.0);
-            for (int i=0; i< args.getPowerCapTimes().size(); i++) {
-                powerCap.addJump(args.getPowerCapTimes().get(i),
-                        args.getPowerCapValues().get(i));
-            }
 
-            String dir = args.getOutputDirBase() + File.separator + "0" + File.separator;
+            // As a baseline power use half the maximum useful power
+            double basePower = maxPowerRun.maxPowerUsage / 2;
+
+            // So the time to completion should be around doubled
+            double timeEst = maxPowerRun.totalTime * 2;
+
+            // Now make a varying power cap with a power supply dip in the
+            // middle ~1/3 of the time.
+            PiecewiseConstantFunction powerCap =
+                    new PiecewiseConstantFunction(0.0);
+            powerCap.addJump(0.0, basePower);
+            powerCap.addJump(timeEst/3, basePower*powerConstraint);
+            powerCap.addJump(2*timeEst/3, basePower);
+
+            // Make the directory
+            String dir = args.getOutputDirBase() + File.separator
+                    + Double.toString(powerConstraint) + File.separator;
             (new File(dir)).mkdir();
 
+            // and run it
             Planner planner = new PowerCappedPlanner(powerCap, new HeftPlanner());
-
             runTest(args.getDagFileName(), dir, vmType, powerCap, planner);
         }
     }
 
-    public static void runTest(String dagFileName,
+    public static RunStats runTest(String dagFileName,
             String outputDirName,
             VMType vmType,
             PiecewiseConstantFunction powerCap,
@@ -242,6 +258,13 @@ public final class MySimulation {
         } finally {
             powerLog.close();
         }
+
+
+        RunStats stats = new RunStats();
+        stats.maxPowerUsage = Collections.max(powerUsed.jumpValues());
+        stats.totalTime = algorithmStatistics.getLastJobFinishTime();
+
+        return stats;
 
     }
 
