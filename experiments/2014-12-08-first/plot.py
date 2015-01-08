@@ -59,7 +59,8 @@ def parse_power_log(filename):
         p.label = label
 
         # Extract jumps of first power function, store as two lists
-        pairs = sorted(zip(jump_dict.keys(), jump_dict.values()),
+        pairs = [(0.0, start)] + \
+                sorted(zip(jump_dict.keys(), jump_dict.values()),
                        key=lambda pair: pair[0])
 
         # Add final time for nicer plotting
