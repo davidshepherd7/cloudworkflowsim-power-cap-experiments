@@ -32,8 +32,8 @@ javac -cp "${root}/lib/*" -d bin/ src/*.java
 # run
 for size in $sizes; do
     for i in $variations; do
-        for application in $applications
-        do
+        for application in $applications; do
+
             cd $main
 
             dagfile_base="${application}.n.${size}.${i}"

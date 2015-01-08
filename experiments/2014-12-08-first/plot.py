@@ -13,10 +13,10 @@ import scipy as sp
 import matplotlib.pyplot as plt
 
 
-def main(): 
+def main():
     """Plot list of piecewise constant functions from a file. Format is:
 
-        ( label, initial_value, dict_of_jumps ) 
+        ( label, initial_value, dict_of_jumps )
     """
 
     # Parse arguments
@@ -42,16 +42,16 @@ class Power(object):
 
 
 def parse_power_log(filename):
-    
+
     # Parse file
     with open(filename, 'r') as power_file:
         parsed = [literal_eval(l) for l in power_file.readlines()]
-        
-    # Last time of all jumps  
+
+    # Last time of all jumps
     maxtime = max(it.chain(*[p[2].keys() for p in parsed]))
 
     # Convert to list of Power struct
-    final = [] 
+    final = []
     for func in parsed:
         label, start, jump_dict = func
 
