@@ -116,15 +116,15 @@ public final class MySimulation {
         // Run with an "infinite" power cap
         // ============================================================
         {
-            // ??ds this is pretty slow: has to create a very large number
-            // of VMs in the plan...
             PiecewiseConstantFunction powerCap =
-                    new PiecewiseConstantFunction(1e100);
+                    new PiecewiseConstantFunction(0.0);
+            powerCap.addJump(0.0, 1e100);
 
             String dir = args.getOutputDirBase() + File.separator + "nopowercap" + File.separator;
             (new File(dir)).mkdir();
 
-            runTest(args.getDagFileName(), dir, vmType, powerCap);
+            Planner planner = new HeftPlanner(asList(vmType));
+            runTest(args.getDagFileName(), dir, vmType, powerCap, planner);
         }
 
         // Run with a power cap from arguments
@@ -143,14 +143,17 @@ public final class MySimulation {
             String dir = args.getOutputDirBase() + File.separator + "0" + File.separator;
             (new File(dir)).mkdir();
 
-            runTest(args.getDagFileName(), dir, vmType, powerCap);
+            Planner planner = new PowerCappedPlanner(powerCap, new HeftPlanner());
+
+            runTest(args.getDagFileName(), dir, vmType, powerCap, planner);
         }
     }
 
     public static void runTest(String dagFileName,
             String outputDirName,
             VMType vmType,
-            PiecewiseConstantFunction powerCap) {
+            PiecewiseConstantFunction powerCap,
+            Planner planner) {
 
         // For my purposes I'm not interested in (monetary) budget or a
         // deadline.
@@ -190,7 +193,6 @@ public final class MySimulation {
         // ============================================================
 
         Provisioner provisioner = new NullProvisioner();
-        Planner planner = new PowerCappedPlanner(powerCap, new HeftPlanner());
 
         StaticHeterogeneousAlgorithm staticAlgo =
                 new StaticHeterogeneousAlgorithm.Builder(asList(dag), planner, cloudsim)
