@@ -117,7 +117,7 @@ public final class MySimulation {
         // ============================================================
         {
             PiecewiseConstantFunction powerCap =
-                    new PiecewiseConstantFunction(Double.MAX_VALUE);
+                    new PiecewiseConstantFunction(1e100);
 
             runTest(args.getDagFileName(), args.getOutputFile() + "-nopowercap",
                     vmType, powerCap);
