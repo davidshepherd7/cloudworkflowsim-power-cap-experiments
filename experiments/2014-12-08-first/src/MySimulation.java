@@ -113,21 +113,32 @@ public final class MySimulation {
         VMType vmType = (new VMTypeLoader()).determineVMTypeFromFile(args.getVmFile());
 
 
-        // Make a power cap
+        // Run with an "infinite" power cap
         // ============================================================
-        if (args.getPowerCapTimes().size() != args.getPowerCapValues().size()) {
-            throw new RuntimeException(
-                    "Power cap times and values must be the same length");
-        }
-        PiecewiseConstantFunction powerCap = new PiecewiseConstantFunction(0.0);
-        for (int i=0; i< args.getPowerCapTimes().size(); i++) {
-            powerCap.addJump(args.getPowerCapTimes().get(i),
-                    args.getPowerCapValues().get(i));
+        {
+            PiecewiseConstantFunction powerCap =
+                    new PiecewiseConstantFunction(Double.MAX_VALUE);
+
+            runTest(args.getDagFileName(), args.getOutputFile() + "-nopowercap",
+                    vmType, powerCap);
         }
 
-        // Run
+        // Run with a power cap from arguments
         // ============================================================
-        runTest(args.getDagFileName(), args.getOutputFile(), vmType, powerCap);
+        {
+            if (args.getPowerCapTimes().size() != args.getPowerCapValues().size()) {
+                throw new RuntimeException(
+                        "Power cap times and values must be the same length");
+            }
+            PiecewiseConstantFunction powerCap = new PiecewiseConstantFunction(0.0);
+            for (int i=0; i< args.getPowerCapTimes().size(); i++) {
+                powerCap.addJump(args.getPowerCapTimes().get(i),
+                        args.getPowerCapValues().get(i));
+            }
+
+            runTest(args.getDagFileName(), args.getOutputFile(),
+                    vmType, powerCap);
+        }
     }
 
     public static void runTest(String dagFileName,
