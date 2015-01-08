@@ -47,7 +47,7 @@ import cws.core.algorithms.heterogeneous.Planner;
 import cws.core.algorithms.heterogeneous.PowerCappedPlanner;
 import cws.core.algorithms.heterogeneous.TrivialPlanner;
 import cws.core.algorithms.heterogeneous.HeftPlanner;
-import cws.core.algorithms.heterogeneous.PiecewiseConstantFunction;
+import cws.core.core.PiecewiseConstantFunction;
 
 import cws.core.cloudsim.CloudSimWrapper;
 import cws.core.config.GlobalStorageParamsLoader;
