@@ -60,10 +60,14 @@ for size in $sizes; do
             python -m validation.experiment_validator "${out}.parsed" 2>&1 \
                 | tee "${dir}/validation_out"
 
-            # plot
+            # plot gantt charts
             cd ~/workflows/cloudworkflowsimulator/scripts/visualisation
             ruby plot_gantt.rb results ${out}.parsed ${out}.results
             ruby plot_gantt.rb workflow ${out}.parsed ${out}.workflow
+
+            # plot power usage
+            cd $main
+            ./plot.py ${out}.power-log ${out}.power-log.png
 
         done
     done

@@ -23,10 +23,16 @@ def main():
     parser = argparse.ArgumentParser(description=main.__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('power_log_file')
+    parser.add_argument('save_plot_file', nargs="?", default=None)
     args = parser.parse_args()
 
     # do it
-    plot_power(parse_power_log(args.power_log_file))
+    fig = plot_power(parse_power_log(args.power_log_file))
+
+    if args.save_plot_file is None:
+        plt.show()
+    else:
+        plt.savefig(args.save_plot_file)
 
     return 0
 
@@ -73,12 +79,9 @@ def plot_power(power_list):
                  label=power.label, where="post")
 
     plt.legend()
-    plt.show()
 
-    return
+    return plt.gcf()
 
 
 if __name__ == "__main__":
     sys.exit(main())
-
-
