@@ -86,7 +86,7 @@ public final class MySimulation {
     }
 
     public static interface Args {
-        @Option String getOutputFile();
+        @Option String getOutputDirBase();
 
         @Option String getVmFile();
 
@@ -119,8 +119,10 @@ public final class MySimulation {
             PiecewiseConstantFunction powerCap =
                     new PiecewiseConstantFunction(1e100);
 
-            runTest(args.getDagFileName(), args.getOutputFile() + "-nopowercap",
-                    vmType, powerCap);
+            String dir = args.getOutputDirBase() + File.separator + "nopowercap" + File.separator;
+            (new File(dir)).mkdir();
+
+            runTest(args.getDagFileName(), dir, vmType, powerCap);
         }
 
         // Run with a power cap from arguments
@@ -136,20 +138,25 @@ public final class MySimulation {
                         args.getPowerCapValues().get(i));
             }
 
-            runTest(args.getDagFileName(), args.getOutputFile(),
-                    vmType, powerCap);
+            String dir = args.getOutputDirBase() + File.separator + "0" + File.separator;
+            (new File(dir)).mkdir();
+
+            runTest(args.getDagFileName(), dir, vmType, powerCap);
         }
     }
 
     public static void runTest(String dagFileName,
-            String outputFileName,
+            String outputDirName,
             VMType vmType,
             PiecewiseConstantFunction powerCap) {
 
-        // For my purposes I'm not interested in (monetary) budget or
-        // a deadline.
+        // For my purposes I'm not interested in (monetary) budget or a
+        // deadline.
         double budget = 1e50;
         double deadline = 1e50;
+
+        String outputFileName = outputDirName + "out.log";
+        String powerFileName = outputDirName + "power.log";
 
         // Get the dag
         DAG dag = parseDag(dagFileName);
@@ -218,10 +225,9 @@ public final class MySimulation {
         PiecewiseConstantFunction powerGap
                 = powerCap.minus(algorithmStatistics.getPowerUsage());
 
-        String powerLogName = String.format("%s.power-log", outputFileName);
         PrintWriter powerLog = null;
         try {
-            powerLog = new PrintWriter(powerLogName, "UTF-8");
+            powerLog = new PrintWriter(powerFileName, "UTF-8");
             // powerLog.print(pythonFormatPFunc("power gap", powerGap));
             powerLog.print(pythonFormatPFunc("power cap", powerCap));
             powerLog.print(pythonFormatPFunc("power used", powerUsed));

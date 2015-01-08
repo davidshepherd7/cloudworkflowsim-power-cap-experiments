@@ -15,15 +15,15 @@ sizes="50 100 200 300 400 500 600 700 800 900 1000"
 
 
 main="$(readlink -f $(pwd))"
-out_dir="${main}/output"
+out_dir_root="${main}/output"
 root="../.."
 
 # Create dirs
-mkdir -p $out_dir bin
+mkdir -p $out_dir_root bin
 
 # clean
-touch "${out_dir}/temp" bin/temp
-rm -r ${out_dir}/*
+touch "${out_dir_root}/temp" bin/temp
+rm -r ${out_dir_root}/*
 rm -r bin/*
 
 # compile
@@ -39,36 +39,40 @@ for size in $sizes; do
             dagfile_base="${application}.n.${size}.${i}"
             echo "Running dag $dagfile_base"
 
-            dir="${out_dir}/${dagfile_base}"
-            out="${dir}/out.log"
+            out_dir_base="${out_dir_root}/${dagfile_base}"
 
-            mkdir -p ${dir}
+            mkdir -p ${out_dir_base}
             java -cp "${root}/lib/*:./bin" MySimulation \
                  --dagFileName "${main}/input/dags/${dagfile_base}.dag" \
-                 --outputFile "$out" \
+                 --outputDirBase "$out_dir_base" \
                  --vmFile "input/default.vm.yaml" \
                  --powerCapTimes $powerCapTimes \
                  --powerCapValues $powerCapValues
 
+            for out_dir in $(ls -d ${out_dir_base}/*); do
 
-            # parse
-            cd ~/workflows/cloudworkflowsimulator/scripts
-            python -m log_parser.parse_experiment_log "${out}" "${out}.parsed"
+                outfile="${out_dir}/out.log"
+                powerfile="${out_dir}/power.log"
 
-            # validate
-            cd ~/workflows/cloudworkflowsimulator/scripts
-            python -m validation.experiment_validator "${out}.parsed" 2>&1 \
-                | tee "${dir}/validation_out"
+                # parse
+                cd ~/workflows/cloudworkflowsimulator/scripts
+                python -m log_parser.parse_experiment_log "${outfile}" "${outfile}.parsed"
 
-            # plot gantt charts
-            cd ~/workflows/cloudworkflowsimulator/scripts/visualisation
-            ruby plot_gantt.rb results ${out}.parsed ${out}.results
-            ruby plot_gantt.rb workflow ${out}.parsed ${out}.workflow
+                # validate
+                cd ~/workflows/cloudworkflowsimulator/scripts
+                python -m validation.experiment_validator "${outfile}.parsed" 2>&1 \
+                    | tee "${outfile}.validation"
 
-            # plot power usage
-            cd $main
-            ./plot.py ${out}.power-log ${out}.power-log.png
+                # plot gantt charts
+                cd ~/workflows/cloudworkflowsimulator/scripts/visualisation
+                ruby plot_gantt.rb results ${outfile}.parsed ${outfile}.results
+                ruby plot_gantt.rb workflow ${outfile}.parsed ${outfile}.workflow
 
+                # plot power usage
+                cd $main
+                ./plot.py ${powerfile} ${powerfile}.png
+
+            done
         done
     done
 done
