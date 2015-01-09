@@ -27,6 +27,7 @@ def main():
     parser = argparse.ArgumentParser(description=main.__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('data_files', nargs="*")
+    parser.add_argument('--save-as')
     args = parser.parse_args()
 
     # Parse data
@@ -66,6 +67,9 @@ def main():
 
         axes.legend(loc=0)
         axes.set_ylim([1.0, 2.0])
+
+        if args.save_as is not None:
+            fig.savefig(args.save_as + "-" + application + ".pdf")
 
     plt.show()
 
