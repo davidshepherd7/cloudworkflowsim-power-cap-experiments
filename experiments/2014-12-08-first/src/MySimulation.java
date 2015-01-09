@@ -119,7 +119,7 @@ public final class MySimulation {
             System.exit(0);
         }
 
-        VMType vmType = (new VMTypeLoader()).determineVMTypeFromFile(args.getVmFile());
+        final VMType vmType = (new VMTypeLoader()).determineVMTypeFromFile(args.getVmFile());
 
         // Get the dag
         final DAG dag = parseDag(args.getDagFileName());
@@ -131,25 +131,25 @@ public final class MySimulation {
 
         // Compute a lower bound for the makespan based on the critical
         // path computation time
-        double timeEst = slrMakespanBound(dag, vmType);
+        final double timeEst = slrMakespanBound(dag, vmType);
 
         // Get estimate of energy consumed by counting the number of
         // instructions in the DAG and getting energy per instruction from
         // the vm, then powerEst is chosen such that energy provided by
         // time timeEst is approximately the energy consumed by the
         // uncapped version.
-        double joulesPerMInstructions = vmType.getPowerConsumption() / vmType.getMips();
-        double totalEnergyNeeded = dag.getTotalSize() * joulesPerMInstructions;
-        double powerEst = totalEnergyNeeded / timeEst;
+        final double joulesPerMInstructions = vmType.getPowerConsumption() / vmType.getMips();
+        final double totalEnergyNeeded = dag.getTotalSize() * joulesPerMInstructions;
+        final double powerEst = totalEnergyNeeded / timeEst;
 
-        double basePower = powerEst;
+        final double basePower = powerEst;
 
         //??ds Should I make sure the power is always more than the power
         //for one VM?
 
         // Run with power caps which dip in the middle
         // ============================================================
-        List<Double> powerConstraints = asList(0.2, 0.5, 0.7);
+        final List<Double> powerConstraints = asList(0.2, 0.5, 0.7);
         for (double powerConstraint : powerConstraints)
         {
             // Make a varying power cap with a power supply dip in the
@@ -161,7 +161,7 @@ public final class MySimulation {
             powerCap.addJump(2*timeEst/3, basePower);
 
             // Make the directory
-            String dir = args.getOutputDirBase() + File.separator
+            final String dir = args.getOutputDirBase() + File.separator
                     + Double.toString(powerConstraint) + File.separator;
             (new File(dir)).mkdir();
 
@@ -180,11 +180,11 @@ public final class MySimulation {
 
         // For my purposes I'm not interested in (monetary) budget or a
         // deadline.
-        double budget = 1e50;
-        double deadline = 1e50;
+        final double budget = 1e50;
+        final double deadline = 1e50;
 
-        String outputFileName = outputDirName + "out.log";
-        String powerFileName = outputDirName + "power.log";
+        final String outputFileName = outputDirName + "out.log";
+        final String powerFileName = outputDirName + "power.log";
 
         // Make CloudSim object
         OutputStream logStream = getLogOutputStream(outputFileName);
@@ -238,15 +238,15 @@ public final class MySimulation {
         // Generate stats about how well the job did
         // ============================================================
         AlgorithmStatistics algorithmStatistics = algorithm.getAlgorithmStatistics();
-        double planningTime = algorithm.getPlanningnWallTime() / 1.0e9;
-        double simulationTime = cloudsim.getSimulationWallTime() / 1.0e9;
+        final double planningTime = algorithm.getPlanningnWallTime() / 1.0e9;
+        final double simulationTime = cloudsim.getSimulationWallTime() / 1.0e9;
 
 
         // Log power usage
         // ============================================================
-        PiecewiseConstantFunction powerUsed =
+        final PiecewiseConstantFunction powerUsed =
                 algorithmStatistics.getPowerUsage();
-        PiecewiseConstantFunction powerGap
+        final PiecewiseConstantFunction powerGap
                 = powerCap.minus(algorithmStatistics.getPowerUsage());
 
         PrintWriter powerLog = null;
@@ -263,9 +263,9 @@ public final class MySimulation {
             powerLog.close();
         }
 
-        double makespan = algorithmStatistics.getLastJobFinishTime();
+        final double makespan = algorithmStatistics.getLastJobFinishTime();
 
-        double om = optimalMakespan(powerCap, vmType, dag);
+        final double om = optimalMakespan(powerCap, vmType, dag);
         System.out.printf("optimal makespan: %f\n", om);
         System.out.printf("actual makespan: %f\n", makespan);
         System.out.printf("ratio: %f\n\n", makespan/om);
@@ -303,7 +303,7 @@ public final class MySimulation {
     }
 
     private static String pythonFormatPFunc(String label, PiecewiseConstantFunction f) {
-        String mapAsString = pythonFormatMap(f.jumps());
+        final String mapAsString = pythonFormatMap(f.jumps());
         return String.format("('%s', %f, %s)\n",
                 label, f.getInitialValue(), mapAsString);
     }
@@ -322,10 +322,8 @@ public final class MySimulation {
     /** Load dags from file.
      */
     private static DAG parseDag(String dagFileName) {
-        DAG dag = null;
-        File dagFile = new File(dagFileName);
-        dag = DAGParser.parseDAG(dagFile);
-
+        final File dagFile = new File(dagFileName);
+        DAG dag = DAGParser.parseDAG(dagFile);
         dag.setId("0");
         return dag;
     }
@@ -337,7 +335,7 @@ public final class MySimulation {
      * VMTypes but here we only allow one.
      */
     private static double slrMakespanBound(DAG dag, VMType vmType) {
-        CriticalPath cp = new CriticalPath(new TopologicalOrder(dag), vmType);
+        final CriticalPath cp = new CriticalPath(new TopologicalOrder(dag), vmType);
         return cp.getCriticalPathLength();
     }
 
@@ -350,22 +348,22 @@ public final class MySimulation {
     private static double optimalMakespan(PiecewiseConstantFunction powerCap,
             VMType vmType, DAG dag) {
 
-        Map.Entry<Double, Double> finalJump = powerCap.getFinalJump();
-        double lastJump = finalJump.getKey();
-        double finalPower = finalJump.getValue();
+        final Map.Entry<Double, Double> finalJump = powerCap.getFinalJump();
+        final double lastJump = finalJump.getKey();
+        final double finalPower = finalJump.getValue();
 
-        double mInstructionsPerJoule = vmType.getMips() / vmType.getPowerConsumption();
-        double totalMInstructionsNeeded = dag.getTotalSize();
+        final double mInstructionsPerJoule = vmType.getMips() / vmType.getPowerConsumption();
+        final double totalMInstructionsNeeded = dag.getTotalSize();
 
-        double baseEnergy = powerCap.integral(0.0, lastJump);
-        double baseInstructions = baseEnergy * mInstructionsPerJoule;
+        final double baseEnergy = powerCap.integral(0.0, lastJump);
+        final double baseInstructions = baseEnergy * mInstructionsPerJoule;
 
         // So from now on the power is fixed, compute time to finish with
         // this power.
-        double remainingInstructions = totalMInstructionsNeeded - baseInstructions;
-        double remainingEnergy = remainingInstructions / mInstructionsPerJoule;
-        double remainingTime = remainingEnergy / finalPower;
-        double optimalMakespan = lastJump + remainingTime;
+        final double remainingInstructions = totalMInstructionsNeeded - baseInstructions;
+        final double remainingEnergy = remainingInstructions / mInstructionsPerJoule;
+        final double remainingTime = remainingEnergy / finalPower;
+        final double optimalMakespan = lastJump + remainingTime;
 
         // Assumption: optimal makespan will be later than the final jump
         // in the power. If we didn't assume this we would be solving a
