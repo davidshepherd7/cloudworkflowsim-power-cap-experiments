@@ -55,7 +55,9 @@ worker()
             java -cp "${project_root}/lib/*:./bin" MySimulation \
                  --dagFileName "${main}/input/dags/${dagfile_base}.dag" \
                  --outputDirBase "$out_dir_base" \
-                 --vmFile "input/default.vm.yaml"
+                 --vmFile "input/default.vm.yaml" \
+                 --application "$application" \
+                 --size "$size"
 
             for out_dir in $(ls -d ${out_dir_base}/*); do
 

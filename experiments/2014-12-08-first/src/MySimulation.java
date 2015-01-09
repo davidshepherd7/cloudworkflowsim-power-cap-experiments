@@ -85,8 +85,14 @@ public final class MySimulation {
 
     public static class RunStats {
         double maxPowerUsage;
-        double totalTime;
         double totalEnergyConsumed;
+
+        double makespan;
+        double optimalMakespan;
+
+        String application;
+        int size;
+        double powerDipFraction;
     }
 
     // Non-instantiable
@@ -101,8 +107,9 @@ public final class MySimulation {
 
         @Option String getDagFileName();
 
-        @Option(defaultValue="100.0001") List<Double> getPowerCapValues();
-        @Option(defaultValue="0.0") List<Double> getPowerCapTimes();
+        @Option String getApplication();
+
+        @Option Integer getSize();
 
         @Option(helpRequest = true) boolean getHelp();
     }
@@ -167,7 +174,35 @@ public final class MySimulation {
 
             // and run it
             Planner planner = new PowerCappedPlanner(powerCap, new HeftPlanner());
-            runTest(dag, dir, vmType, powerCap, planner, args.getDagFileName());
+            RunStats data = runTest(dag, dir, vmType, powerCap,
+                    planner, args.getDagFileName());
+
+            data.application = args.getApplication();
+            data.size = args.getSize();
+            data.powerDipFraction = powerConstraint;
+
+            // write data needed for SLR-like plot
+            writeSLRPlotData(dir, data);
+        }
+    }
+
+    private static void writeSLRPlotData(String dir, RunStats data) {
+        File file = new File(dir, "slr_plot_data");
+
+        PrintWriter writer = null;
+        try {
+            writer = new PrintWriter(file.toString(), "UTF-8");
+            writer.printf("'application' '%s'\n", data.application);
+            writer.printf("'size' '%s'\n", data.size);
+            writer.printf("'optimalMakespan' %f\n", data.optimalMakespan);
+            writer.printf("'makespan' %f\n", data.makespan);
+            writer.printf("'powerDipFraction' %f\n", data.powerDipFraction);
+        } catch (FileNotFoundException e) {
+            throw new RuntimeException(e);
+        } catch (UnsupportedEncodingException e) {
+            throw new RuntimeException(e);
+        } finally {
+            writer.close();
         }
     }
 
@@ -273,8 +308,9 @@ public final class MySimulation {
 
         RunStats stats = new RunStats();
         stats.maxPowerUsage = Collections.max(powerUsed.jumpValues());
-        stats.totalTime = algorithmStatistics.getLastJobFinishTime();
+        stats.makespan = algorithmStatistics.getLastJobFinishTime();
         stats.totalEnergyConsumed = powerUsed.integral(0.0, makespan);
+        stats.optimalMakespan = om;
 
         return stats;
 
