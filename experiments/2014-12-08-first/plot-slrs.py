@@ -54,20 +54,13 @@ def main():
 
         for power_dip_fraction, dataset in group_by(application_dataset, 'powerDipFraction'):
 
-            # convert from iterator to list so we can consume it multiple
-            # times
-            dataset = list(dataset)
+            sizes = []
+            means = []
+            for size, a in group_by(dataset, 'size'):
+                means.append(sp.mean([d['makespan']/ d['optimalMakespan'] for d in a]))
+                sizes.append(size)
 
-
-            #??ds should we take the mean of the slrs? Probably...
-
-            sizes = [d['size'] for d in dataset]
-            optimalMakespans = [d['optimalMakespan'] for d in dataset]
-            makespans = [d['makespan'] for d in dataset]
-
-            slrs = [m/om for m, om in zip(makespans, optimalMakespans)]
-
-            axes.scatter(sizes, slrs,
+            axes.scatter(sizes, means,
                          marker=next(markers), color=next(colors),
                          label=power_dip_fraction)
 
