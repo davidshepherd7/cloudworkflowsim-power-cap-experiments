@@ -125,22 +125,6 @@ public final class MySimulation {
         final DAG dag = parseDag(args.getDagFileName());
 
 
-        // Run with an "infinite" power cap
-        // ============================================================
-        RunStats maxPowerRun = null;
-        {
-            PiecewiseConstantFunction powerCap =
-                    new PiecewiseConstantFunction(0.0);
-            powerCap.addJump(0.0, 1e100);
-
-            String dir = args.getOutputDirBase() + File.separator + "nopowercap" + File.separator;
-            (new File(dir)).mkdir();
-
-            Planner planner = new HeftPlanner(asList(vmType));
-            maxPowerRun = runTest(dag, dir, vmType, powerCap, planner,
-                                  args.getDagFileName());
-        }
-
         // Estimate time and power usage
         // ============================================================
         // (for constructing interesting power cap functions)
@@ -149,10 +133,13 @@ public final class MySimulation {
         // path computation time
         double timeEst = slrMakespanBound(dag, vmType);
 
-        // Get energy consumed by uncapped version, then powerEst is chosen
-        // such that energy provided by time timeEst is approximately the
-        // energy consumed by the uncapped version.
-        double totalEnergyUsed = maxPowerRun.totalEnergyConsumed;
+        // Get estimate of energy consumed by counting the number of
+        // instructions in the DAG and getting energy per instruction from
+        // the vm, then powerEst is chosen such that energy provided by
+        // time timeEst is approximately the energy consumed by the
+        // uncapped version.
+        double joulesPerMInstructions = vmType.getPowerConsumption() / vmType.getMips();
+        double totalEnergyUsed = dag.getTotalSize() * joulesPerMInstructions;
         double powerEst = totalEnergyUsed / timeEst;
 
         // As a baseline power use less power than the estimated
