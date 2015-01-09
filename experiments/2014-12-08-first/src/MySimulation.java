@@ -131,7 +131,7 @@ public final class MySimulation {
 
         // Compute a lower bound for the makespan based on the critical
         // path computation time
-        final double timeEst = slrMakespanBound(dag, vmType);
+        final double timeEst = criticalPathMakespanBound(dag, vmType);
 
         // Get estimate of energy consumed by counting the number of
         // instructions in the DAG and getting energy per instruction from
@@ -330,11 +330,10 @@ public final class MySimulation {
 
     /** Compute a lower bound on the makespan based on summing the
      * computation time for tasks in the critical path of the DAG.
-     *
-     * Note that the definition of SLR in the heft paper allows multiple
-     * VMTypes but here we only allow one.
      */
-    private static double slrMakespanBound(DAG dag, VMType vmType) {
+    private static double criticalPathMakespanBound(DAG dag, VMType vmType) {
+        // Could extend to heterogeneous VMs by using SLR definition from
+        // HEFT paper (Topcuoglu2002 eq 11).
         final CriticalPath cp = new CriticalPath(new TopologicalOrder(dag), vmType);
         return cp.getCriticalPathLength();
     }
@@ -348,29 +347,32 @@ public final class MySimulation {
     private static double optimalMakespan(PiecewiseConstantFunction powerCap,
             VMType vmType, DAG dag) {
 
-        final Map.Entry<Double, Double> finalJump = powerCap.getFinalJump();
-        final double lastJump = finalJump.getKey();
-        final double finalPower = finalJump.getValue();
+        // Could extend to heterogeneous VMs (multiple VM types) by taking
+        // the mean M instructions per joule.
+
+        final Map.Entry<Double, Double> lastJump = powerCap.getFinalJump();
+        final double lastJumpTime = lastJump.getKey();
+        final double lastJumpPower = lastJump.getValue();
 
         final double mInstructionsPerJoule = vmType.getMips() / vmType.getPowerConsumption();
         final double totalMInstructionsNeeded = dag.getTotalSize();
 
-        final double baseEnergy = powerCap.integral(0.0, lastJump);
+        // Compute how many instructions we could have completed before the
+        // last jump in the power cap.
+        final double baseEnergy = powerCap.integral(0.0, lastJumpTime);
         final double baseInstructions = baseEnergy * mInstructionsPerJoule;
 
         // So from now on the power is fixed, compute time to finish with
         // this power.
         final double remainingInstructions = totalMInstructionsNeeded - baseInstructions;
         final double remainingEnergy = remainingInstructions / mInstructionsPerJoule;
-        final double remainingTime = remainingEnergy / finalPower;
-        final double optimalMakespan = lastJump + remainingTime;
+        final double remainingTime = remainingEnergy / lastJumpPower;
+        final double optimalMakespan = lastJumpTime + remainingTime;
 
-        // Assumption: optimal makespan will be later than the final jump
-        // in the power. If we didn't assume this we would be solving a
-        // much more complicated equation.
-        if(optimalMakespan < lastJump) {
-            throw new RuntimeException("Assumed that we finish after the last power change, not true here!");
-            // System.out.printf("optimal makespan wrong! %f\n", remainingInstructions);
+        // We assumed that we are not finished until after the final jump,
+        // check that this is true.
+        if(remainingInstructions < 0) {
+            throw new RuntimeException("This function assumes that the final change in the power cap is earlier than the makespan, but this was not true.");
         }
 
         return optimalMakespan;
