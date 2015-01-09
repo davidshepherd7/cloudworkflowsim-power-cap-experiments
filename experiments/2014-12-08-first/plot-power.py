@@ -29,6 +29,8 @@ def main():
     # do it
     fig = plot_power(parse_power_log(args.power_log_file))
 
+    plt.title(args.power_log_file)
+
     if args.save_plot_file is None:
         plt.show()
     else:

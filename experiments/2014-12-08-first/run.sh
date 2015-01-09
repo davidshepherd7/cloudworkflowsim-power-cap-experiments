@@ -78,7 +78,7 @@ worker()
 
                 # plot power usage
                 cd $main
-                ./plot.py ${powerfile} ${powerfile}.png
+                ./plot-power.py ${powerfile} ${powerfile}.png
 
             done
         done
