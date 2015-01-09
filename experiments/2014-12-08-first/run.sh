@@ -13,9 +13,6 @@ else
     sizes="50 100 200 300 400 500 600 700 800 900 1000"
 fi
 
-powerCapTimes="0.0 10000 40000"
-powerCapValues="200.001 100.001 400.001"
-
 main="$(readlink -f $(pwd))"
 out_dir_root="${main}/output"
 project_root="../.."
@@ -31,14 +28,25 @@ rm -r bin/*
 # compile
 javac -cp "${project_root}/lib/*" -d bin/ src/*.java
 
-# run
-for size in $sizes; do
-    for i in $variations; do
+worker()
+{
+    set -o errexit
+    set -o nounset
+
+    variation="$1"
+    sizes="$2"
+    applications="$3"
+
+    main="$(readlink -f $(pwd))"
+    out_dir_root="${main}/output"
+    project_root="../.."
+
+    for size in $sizes; do
         for application in $applications; do
 
             cd $main
 
-            dagfile_base="${application}.n.${size}.${i}"
+            dagfile_base="${application}.n.${size}.${variation}"
             echo "Running dag $dagfile_base"
 
             out_dir_base="${out_dir_root}/${dagfile_base}"
@@ -47,9 +55,7 @@ for size in $sizes; do
             java -cp "${project_root}/lib/*:./bin" MySimulation \
                  --dagFileName "${main}/input/dags/${dagfile_base}.dag" \
                  --outputDirBase "$out_dir_base" \
-                 --vmFile "input/default.vm.yaml" \
-                 --powerCapTimes $powerCapTimes \
-                 --powerCapValues $powerCapValues
+                 --vmFile "input/default.vm.yaml"
 
             for out_dir in $(ls -d ${out_dir_base}/*); do
 
@@ -77,4 +83,18 @@ for size in $sizes; do
             done
         done
     done
-done
+}
+
+export -f worker
+
+
+if [ $# -gt 0 ]; then
+    applications="GENOME LIGO SIPHT MONTAGE CYBERSHAKE"
+    variations="0"
+    sizes="50 900"
+
+    worker 0 "$sizes" "$applications"
+else
+    # run in parallel
+    SHELL="bash" parallel -n 1 -j 8 "worker {} \"$sizes\" \"$applications\"" ::: $variations
+fi
