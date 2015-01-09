@@ -18,7 +18,7 @@ powerCapValues="200.001 100.001 400.001"
 
 main="$(readlink -f $(pwd))"
 out_dir_root="${main}/output"
-root="../.."
+project_root="../.."
 
 # Create dirs
 mkdir -p $out_dir_root bin
@@ -29,7 +29,7 @@ rm -r ${out_dir_root}/*
 rm -r bin/*
 
 # compile
-javac -cp "${root}/lib/*" -d bin/ src/*.java
+javac -cp "${project_root}/lib/*" -d bin/ src/*.java
 
 # run
 for size in $sizes; do
@@ -44,7 +44,7 @@ for size in $sizes; do
             out_dir_base="${out_dir_root}/${dagfile_base}"
 
             mkdir -p ${out_dir_base}
-            java -cp "${root}/lib/*:./bin" MySimulation \
+            java -cp "${project_root}/lib/*:./bin" MySimulation \
                  --dagFileName "${main}/input/dags/${dagfile_base}.dag" \
                  --outputDirBase "$out_dir_base" \
                  --vmFile "input/default.vm.yaml" \
