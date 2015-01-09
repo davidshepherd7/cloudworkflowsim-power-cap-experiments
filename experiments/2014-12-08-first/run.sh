@@ -4,9 +4,9 @@ set -o errexit
 set -o nounset
 
 if [ $# -gt 0 ]; then
-    applications="GENOME"
+    applications="GENOME MONTAGE"
     variations="0"
-    sizes="50"
+    sizes="50 900"
 else
     applications="GENOME LIGO SIPHT MONTAGE CYBERSHAKE"
     variations="0 1 2 3 4 5 6 7 8 9"
