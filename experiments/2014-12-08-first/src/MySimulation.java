@@ -59,6 +59,8 @@ import cws.core.dag.DAGListGenerator;
 import cws.core.dag.DAGParser;
 import cws.core.dag.DAGStats;
 import cws.core.dag.Task;
+import cws.core.dag.algorithms.CriticalPath;
+import cws.core.dag.algorithms.TopologicalOrder;
 import cws.core.engine.Environment;
 import cws.core.engine.EnvironmentFactory;
 import cws.core.exception.IllegalCWSArgumentException;
@@ -84,6 +86,7 @@ public final class MySimulation {
     public static class RunStats {
         double maxPowerUsage;
         double totalTime;
+        double totalEnergyConsumed;
     }
 
     // Non-instantiable
@@ -118,6 +121,9 @@ public final class MySimulation {
 
         VMType vmType = (new VMTypeLoader()).determineVMTypeFromFile(args.getVmFile());
 
+        // Get the dag
+        final DAG dag = parseDag(args.getDagFileName());
+
 
         // Run with an "infinite" power cap
         // ============================================================
@@ -131,28 +137,42 @@ public final class MySimulation {
             (new File(dir)).mkdir();
 
             Planner planner = new HeftPlanner(asList(vmType));
-            maxPowerRun = runTest(args.getDagFileName(), dir, vmType, powerCap, planner);
+            maxPowerRun = runTest(dag, dir, vmType, powerCap, planner,
+                                  args.getDagFileName());
         }
 
-        // Run with power caps based on maxPowerUsage
+        // Estimate time and power usage
+        // ============================================================
+        // (for constructing interesting power cap functions)
+
+        // Compute a lower bound for the makespan based on the critical
+        // path computation time
+        double timeEst = slrMakespanBound(dag, vmType);
+
+        // Get energy consumed by uncapped version, then powerEst is chosen
+        // such that energy provided by time timeEst is approximately the
+        // energy consumed by the uncapped version.
+        double totalEnergyUsed = maxPowerRun.totalEnergyConsumed;
+        double powerEst = totalEnergyUsed / timeEst;
+
+        // As a baseline power use less power than the estimated
+        // requirement to finish by timeEst (to make things more
+        // interesting for the planner).
+        double basePower = powerEst / 2;
+
+
+        // Run with power caps which dip in the middle
         // ============================================================
         List<Double> powerConstraints = asList(0.2, 0.5, 0.7);
         for (double powerConstraint : powerConstraints)
         {
-
-            // As a baseline power use half the maximum useful power
-            double basePower = maxPowerRun.maxPowerUsage / 2;
-
-            // So the time to completion should be around doubled
-            double timeEst = maxPowerRun.totalTime * 2;
-
-            // Now make a varying power cap with a power supply dip in the
+            // Make a varying power cap with a power supply dip in the
             // middle ~1/3 of the time.
             PiecewiseConstantFunction powerCap =
                     new PiecewiseConstantFunction(0.0);
             powerCap.addJump(0.0, basePower);
-            powerCap.addJump(timeEst/3, basePower*powerConstraint);
-            powerCap.addJump(2*timeEst/3, basePower);
+            powerCap.addJump(timeEst/4, basePower*powerConstraint);
+            powerCap.addJump(2*timeEst/4, basePower);
 
             // Make the directory
             String dir = args.getOutputDirBase() + File.separator
@@ -161,15 +181,16 @@ public final class MySimulation {
 
             // and run it
             Planner planner = new PowerCappedPlanner(powerCap, new HeftPlanner());
-            runTest(args.getDagFileName(), dir, vmType, powerCap, planner);
+            runTest(dag, dir, vmType, powerCap, planner, args.getDagFileName());
         }
     }
 
-    public static RunStats runTest(String dagFileName,
+    public static RunStats runTest(DAG dag,
             String outputDirName,
             VMType vmType,
             PiecewiseConstantFunction powerCap,
-            Planner planner) {
+            Planner planner,
+            String dagFileName) {
 
         // For my purposes I'm not interested in (monetary) budget or a
         // deadline.
@@ -178,9 +199,6 @@ public final class MySimulation {
 
         String outputFileName = outputDirName + "out.log";
         String powerFileName = outputDirName + "power.log";
-
-        // Get the dag
-        DAG dag = parseDag(dagFileName);
 
         // Make CloudSim object
         OutputStream logStream = getLogOutputStream(outputFileName);
@@ -259,10 +277,18 @@ public final class MySimulation {
             powerLog.close();
         }
 
+        double makespan = algorithmStatistics.getLastJobFinishTime();
+
+        double om = optimalMakespan(powerCap, vmType, dag);
+        System.out.printf("optimal makespan: %f\n", om);
+        System.out.printf("actual makespan: %f\n", makespan);
+        System.out.printf("ratio: %f\n\n", makespan/om);
+
 
         RunStats stats = new RunStats();
         stats.maxPowerUsage = Collections.max(powerUsed.jumpValues());
         stats.totalTime = algorithmStatistics.getLastJobFinishTime();
+        stats.totalEnergyConsumed = powerUsed.integral(0.0, makespan);
 
         return stats;
 
@@ -307,7 +333,8 @@ public final class MySimulation {
         }
     }
 
-    // Load dags from files
+    /** Load dags from file.
+     */
     private static DAG parseDag(String dagFileName) {
         DAG dag = null;
         File dagFile = new File(dagFileName);
@@ -316,5 +343,54 @@ public final class MySimulation {
         dag.setId("0");
         return dag;
     }
+
+    /** Compute a lower bound on the makespan based on summing the
+     * computation time for tasks in the critical path of the DAG.
+     *
+     * Note that the definition of SLR in the heft paper allows multiple
+     * VMTypes but here we only allow one.
+     */
+    private static double slrMakespanBound(DAG dag, VMType vmType) {
+        CriticalPath cp = new CriticalPath(new TopologicalOrder(dag), vmType);
+        return cp.getCriticalPathLength();
+    }
+
+    /**
+     * Compute an optimal makespan based on the amount of computation that
+     * can be done within the power cap. Based on the simplifying
+     * assumption that the optimal makespan is after the final change in
+     * the power cap.
+     */
+    private static double optimalMakespan(PiecewiseConstantFunction powerCap,
+            VMType vmType, DAG dag) {
+
+        Map.Entry<Double, Double> finalJump = powerCap.getFinalJump();
+        double lastJump = finalJump.getKey();
+        double finalPower = finalJump.getValue();
+
+        double mInstructionsPerJoule = vmType.getMips() / vmType.getPowerConsumption();
+        double totalMInstructionsNeeded = dag.getTotalSize();
+
+        double baseEnergy = powerCap.integral(0.0, lastJump);
+        double baseInstructions = baseEnergy * mInstructionsPerJoule;
+
+        // So from now on the power is fixed, compute time to finish with
+        // this power.
+        double remainingInstructions = totalMInstructionsNeeded - baseInstructions;
+        double remainingEnergy = remainingInstructions / mInstructionsPerJoule;
+        double remainingTime = remainingEnergy / finalPower;
+        double optimalMakespan = lastJump + remainingTime;
+
+        // Assumption: optimal makespan will be later than the final jump
+        // in the power. If we didn't assume this we would be solving a
+        // much more complicated equation.
+        if(optimalMakespan < lastJump) {
+            throw new RuntimeException("Assumed that we finish after the last power change, not true here!");
+            // System.out.printf("optimal makespan wrong! %f\n", remainingInstructions);
+        }
+
+        return optimalMakespan;
+    }
+
 
 }
