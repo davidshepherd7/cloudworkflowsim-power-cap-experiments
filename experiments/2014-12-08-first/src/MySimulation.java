@@ -139,14 +139,13 @@ public final class MySimulation {
         // time timeEst is approximately the energy consumed by the
         // uncapped version.
         double joulesPerMInstructions = vmType.getPowerConsumption() / vmType.getMips();
-        double totalEnergyUsed = dag.getTotalSize() * joulesPerMInstructions;
-        double powerEst = totalEnergyUsed / timeEst;
+        double totalEnergyNeeded = dag.getTotalSize() * joulesPerMInstructions;
+        double powerEst = totalEnergyNeeded / timeEst;
 
-        // As a baseline power use less power than the estimated
-        // requirement to finish by timeEst (to make things more
-        // interesting for the planner).
-        double basePower = powerEst / 2;
+        double basePower = powerEst;
 
+        //??ds Should I make sure the power is always more than the power
+        //for one VM?
 
         // Run with power caps which dip in the middle
         // ============================================================
@@ -158,8 +157,8 @@ public final class MySimulation {
             PiecewiseConstantFunction powerCap =
                     new PiecewiseConstantFunction(0.0);
             powerCap.addJump(0.0, basePower);
-            powerCap.addJump(timeEst/4, basePower*powerConstraint);
-            powerCap.addJump(2*timeEst/4, basePower);
+            powerCap.addJump(timeEst/3, basePower*powerConstraint);
+            powerCap.addJump(2*timeEst/3, basePower);
 
             // Make the directory
             String dir = args.getOutputDirBase() + File.separator
