@@ -1,0 +1,3 @@
+[submodule "cloudworkflowsimulator"]
+	path = cloudworkflowsimulator
+	url = ../cloudworkflowsimulator
