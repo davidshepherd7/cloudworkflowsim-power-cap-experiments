@@ -52,6 +52,9 @@ def main():
 
         fig, axes = plt.subplots(1,1)
         fig.suptitle(application)
+        axes.set_xlabel("Number of nodes in DAG")
+        axes.set_ylabel("Normalised makespan")
+
 
         for power_dip_fraction, dataset in group_by(application_dataset, 'powerDipFraction'):
 
