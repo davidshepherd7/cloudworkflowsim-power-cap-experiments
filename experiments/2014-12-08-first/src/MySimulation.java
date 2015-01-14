@@ -69,7 +69,6 @@ import cws.core.VMFactory;
 import cws.core.Scheduler;
 import cws.core.Provisioner;
 import cws.core.provisioner.NullProvisioner;
-import cws.core.provisioner.CloudAwareProvisioner;
 import cws.core.provisioner.SimpleUtilizationBasedProvisioner;
 
 import cws.core.storage.StorageManagerStatistics;
@@ -247,7 +246,8 @@ public final class MySimulation {
         // Build and plan the algorithm
         // ============================================================
 
-        Provisioner provisioner = new NullProvisioner();
+        Provisioner provisioner = new NullProvisioner(cloudsim);
+        provisioner.setCloud(cloud);
 
         StaticHeterogeneousAlgorithm staticAlgo =
                 new StaticHeterogeneousAlgorithm.Builder(asList(dag), planner, cloudsim)
