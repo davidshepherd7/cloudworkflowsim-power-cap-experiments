@@ -91,6 +91,11 @@ else
     variations="0 1 2 3 4 5 6 7 8 9"
     sizes="50 100 200 300 400 500 600 700 800 900 1000"
 
+    # Check that we have GNU parallel and not the other one from the
+    # moreutils package.
+    parallel --version 2&>1 > /dev/null \
+        || echo "you have moreutils parallel, install GNU parallel instead"
+
     # run in parallel
     SHELL="bash" parallel -n 1 -j 8 "worker {} \"$sizes\" \"$applications\"" ::: $variations
 fi
