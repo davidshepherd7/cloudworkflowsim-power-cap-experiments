@@ -3,16 +3,6 @@
 set -o errexit
 set -o nounset
 
-if [ $# -gt 0 ]; then
-    applications="GENOME MONTAGE"
-    variations="0"
-    sizes="50 900"
-else
-    applications="GENOME LIGO SIPHT MONTAGE CYBERSHAKE"
-    variations="0 1 2 3 4 5 6 7 8 9"
-    sizes="50 100 200 300 400 500 600 700 800 900 1000"
-fi
-
 main="$(readlink -f $(pwd))"
 out_dir_root="${main}/output"
 project_root="../.."
@@ -93,11 +83,14 @@ export -f worker
 
 if [ $# -gt 0 ]; then
     applications="GENOME LIGO SIPHT MONTAGE CYBERSHAKE"
-    variations="0"
     sizes="50 900"
 
     worker 0 "$sizes" "$applications"
 else
+    applications="GENOME LIGO SIPHT MONTAGE CYBERSHAKE"
+    variations="0 1 2 3 4 5 6 7 8 9"
+    sizes="50 100 200 300 400 500 600 700 800 900 1000"
+
     # run in parallel
     SHELL="bash" parallel -n 1 -j 8 "worker {} \"$sizes\" \"$applications\"" ::: $variations
 fi
