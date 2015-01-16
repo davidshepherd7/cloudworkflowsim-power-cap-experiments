@@ -60,19 +60,19 @@ worker()
                 outfile="${out_dir}/out.log"
                 powerfile="${out_dir}/power.log"
 
-                # # parse
-                # cd $script_dir
-                # python -m log_parser.parse_experiment_log "${outfile}" "${outfile}.parsed"
+                # parse
+                cd $script_dir
+                python -m log_parser.parse_experiment_log "${outfile}" "${outfile}.parsed"
 
                 # # validate
                 # cd $script_dir
                 # python -m validation.experiment_validator "${outfile}.parsed" 2>&1 \
                 #     | tee "${outfile}.validation"
 
-                # # plot gantt charts
-                # cd $script_dir/visualisation
-                # ruby plot_gantt.rb results ${outfile}.parsed ${outfile}.results
-                # ruby plot_gantt.rb workflow ${outfile}.parsed ${outfile}.workflow
+                # plot gantt charts
+                cd $script_dir/visualisation
+                ruby plot_gantt.rb results ${outfile}.parsed ${outfile}.results
+                ruby plot_gantt.rb workflow ${outfile}.parsed ${outfile}.workflow
 
                 # plot power usage
                 cd $main
