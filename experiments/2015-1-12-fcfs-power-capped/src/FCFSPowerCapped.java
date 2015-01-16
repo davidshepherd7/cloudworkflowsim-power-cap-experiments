@@ -183,11 +183,12 @@ public final class FCFSPowerCapped {
             data.powerDipFraction = powerConstraint;
 
             // write data needed for SLR-like plot
-            writeSLRPlotData(dir, data);
+            String algorithmName = "FCFS-like";
+            writeSLRPlotData(dir, data, algorithmName);
         }
     }
 
-    private static void writeSLRPlotData(String dir, RunStats data) {
+    private static void writeSLRPlotData(String dir, RunStats data, String algorithmName) {
         File file = new File(dir, "slr_plot_data");
 
         PrintWriter writer = null;
@@ -198,6 +199,7 @@ public final class FCFSPowerCapped {
             writer.printf("'optimalMakespan' %f\n", data.optimalMakespan);
             writer.printf("'makespan' %f\n", data.makespan);
             writer.printf("'powerDipFraction' %f\n", data.powerDipFraction);
+            writer.printf("'algorithmName' '%s'\n", algorithmName);
         } catch (FileNotFoundException e) {
             throw new RuntimeException(e);
         } catch (UnsupportedEncodingException e) {
