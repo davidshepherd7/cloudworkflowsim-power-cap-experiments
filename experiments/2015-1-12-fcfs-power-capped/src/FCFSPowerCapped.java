@@ -256,11 +256,9 @@ public final class FCFSPowerCapped {
 
         WorkflowEngine engine = new WorkflowEngine(provisioner, scheduler,
                 budget, deadline, cloudsim);
-        EnsembleManager manager = new EnsembleManager(engine, cloudsim);
 
         algorithm.setWorkflowEngine(engine);
         algorithm.setCloud(cloud);
-        algorithm.setEnsembleManager(manager);
 
         // Run
         algorithm.simulate();
