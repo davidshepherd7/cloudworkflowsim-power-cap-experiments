@@ -71,7 +71,7 @@ worker()
 
                 # plot gantt charts
                 cd $script_dir/visualisation
-                ruby plot_gantt.rb results ${outfile}.parsed ${outfile}.results
+                ruby plot_gantt.rb results ${outfile}.parsed ${outfile}.results --crop-from 0.0
 
                 # plot power usage
                 cd $main
