@@ -15,6 +15,11 @@ touch "${out_dir_root}/temp" bin/temp
 rm -r ${out_dir_root}/*
 rm -r bin/*
 
+# (re)compile cws
+cd ../../cloudworkflowsimulator/
+ant clean dist
+cd "$main"
+
 # compile
 javac -cp "${project_root}/lib/*" -d bin/ src/*.java
 
