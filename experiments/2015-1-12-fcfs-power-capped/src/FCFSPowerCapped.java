@@ -259,6 +259,8 @@ public final class FCFSPowerCapped {
         WorkflowEngine engine = new WorkflowEngine(provisioner, scheduler,
                 budget, deadline, cloudsim);
 
+        engine.automaticallyTerminateVMsAtEnd = true;
+
         algorithm.setWorkflowEngine(engine);
         algorithm.setCloud(cloud);
 
