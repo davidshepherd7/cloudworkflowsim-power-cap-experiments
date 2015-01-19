@@ -35,7 +35,10 @@ worker()
     main="$(readlink -f $(pwd))"
     out_dir_root="${main}/output"
     project_root="../.."
-    script_dir="${project_root}/cloudworkflowsimulator/scripts"
+
+    script_dir="$(readlink -f ${project_root}/cloudworkflowsimulator/scripts)"
+    export PYTHONPATH="$PYTHONPATH:$script_dir"
+
 
     for size in $sizes; do
         for application in $applications; do
@@ -61,20 +64,17 @@ worker()
                 powerfile="${out_dir}/power.log"
 
                 # parse
-                cd $script_dir
                 python -m log_parser.parse_experiment_log "${outfile}" "${outfile}.parsed"
 
                 # validate
-                cd $script_dir
                 python -m validation.experiment_validator "${outfile}.parsed" 2>&1 \
                     | tee "${outfile}.validation"
 
                 # plot gantt charts
-                cd $script_dir/visualisation
-                ruby plot_gantt.rb results ${outfile}.parsed ${outfile}.results --crop-from 0.0
+                ruby -C "$script_dir/visualisation/" plot_gantt.rb \
+                     results ${outfile}.parsed ${outfile}.results --crop-from 0.0
 
                 # plot power usage
-                cd $main
                 ./plot-power.py ${powerfile} ${powerfile}.png
 
             done
