@@ -64,10 +64,10 @@ worker()
                 cd $script_dir
                 python -m log_parser.parse_experiment_log "${outfile}" "${outfile}.parsed"
 
-                # # validate
-                # cd $script_dir
-                # python -m validation.experiment_validator "${outfile}.parsed" 2>&1 \
-                #     | tee "${outfile}.validation"
+                # validate
+                cd $script_dir
+                python -m validation.experiment_validator "${outfile}.parsed" 2>&1 \
+                    | tee "${outfile}.validation"
 
                 # plot gantt charts
                 cd $script_dir/visualisation
