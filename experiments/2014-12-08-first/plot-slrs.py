@@ -47,8 +47,8 @@ def main():
     # function gets its own marker type.
     for application, application_dataset in group_by(data, 'application'):
 
-        markers = iter(['x', 'o', '.'])
-        colors = iter(['r', 'g', 'b'])
+        markers = it.cycle(['x', 'o', '.'])
+        colors = iter(['r', 'g', 'b', 'c', 'k', 'y'])
 
         fig, axes = plt.subplots(1,1)
         fig.suptitle(application)
@@ -56,17 +56,19 @@ def main():
         axes.set_ylabel("Normalised makespan")
 
 
-        for power_dip_fraction, dataset in group_by(application_dataset, 'powerDipFraction'):
+        for power_dip_fraction, dataset_1 in group_by(application_dataset, 'powerDipFraction'):
 
-            sizes = []
-            means = []
-            for size, a in group_by(dataset, 'size'):
-                means.append(sp.mean([d['makespan']/ d['optimalMakespan'] for d in a]))
-                sizes.append(size)
+            for algorithm, dataset in group_by(dataset_1, 'algorithmName'):
 
-            axes.scatter(sizes, means,
-                         marker=next(markers), color=next(colors),
-                         label=power_dip_fraction)
+                sizes = []
+                means = []
+                for size, a in group_by(dataset, 'size'):
+                    means.append(sp.mean([d['makespan']/ d['optimalMakespan'] for d in a]))
+                    sizes.append(size)
+
+                axes.scatter(sizes, means, marker=next(markers),
+                             color=next(colors), label=str(power_dip_fraction) +
+                             ' ' + algorithm)
 
         axes.legend(loc=0)
         axes.set_ylim([1.0, 2.0])
