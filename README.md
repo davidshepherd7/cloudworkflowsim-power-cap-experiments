@@ -6,7 +6,7 @@
 
 1. Recursively clone the repository:
 
-       git clone --recursive git@github.com:davidshepherd7/cloudworkflowsim-power-cap-experiments.git
+        git clone --recursive git@github.com:davidshepherd7/cloudworkflowsim-power-cap-experiments.git
 
    note the `--recursive`, without it you won't get cloudworkflowsimulator itself!
 
