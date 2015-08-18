@@ -101,5 +101,5 @@ else
         || echo "you have moreutils parallel, install GNU parallel instead"
 
     # run in parallel
-    SHELL="bash" parallel -n 1 -j 8 --no-notice "worker {} \"$sizes\" \"$applications\"" ::: $variations
+    SHELL="bash" parallel -n 1 --no-notice "worker {} \"$sizes\" \"$applications\"" ::: $variations
 fi
