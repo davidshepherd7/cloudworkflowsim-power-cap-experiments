@@ -18,8 +18,8 @@ sudo apt-get install -y python python3 python3-matplotlib ruby gem python3-scipy
 # parallel is no good!)
 sudo apt-get install -y parallel
 
-# Ruby gems needed for some plotting scripts
-sudo gem install gnuplot main
+# Ruby gems needed for some plotting scripts and dag conversion
+sudo gem install gnuplot main nokogiri
 
 # Build cloudworkflowsim, test and create a jar file
 cd cloudworkflowsimulator
