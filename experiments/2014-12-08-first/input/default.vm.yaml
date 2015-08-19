@@ -18,4 +18,4 @@ powerConsumption: 50
 
 runtimeDistribution:
   distribution: uniform
-  variance: 0.1
+  variance: 0.0
